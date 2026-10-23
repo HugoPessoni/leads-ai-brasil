@@ -1,0 +1,318 @@
+:root {
+  --fundo: #f4f5f7;
+  --superficie: #ffffff;
+  --texto: #14171c;
+  --texto-suave: #5d6573;
+  --borda: #d0d5dd;
+  --principal: #14171c;
+  --principal-texto: #ffffff;
+  --link: #0b57d0;
+  --foco: #1f6feb;
+  --enviado: #1a7f37;
+  --pendente: #9a6700;
+  --raio: 12px;
+  --altura-barra: 56px;
+  --topo: calc(var(--altura-barra) + env(safe-area-inset-top));
+  color-scheme: light;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  font-size: 17px;
+  line-height: 1.4;
+  background: var(--fundo);
+  color: var(--texto);
+}
+
+[hidden] {
+  display: none !important;
+}
+
+button,
+input {
+  font: inherit;
+  color: inherit;
+}
+
+button {
+  cursor: pointer;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+
+h1 {
+  margin: 0;
+  font-size: 24px;
+  line-height: 1.25;
+}
+
+/* ---------- Barra fixa ---------- */
+
+.barra {
+  position: fixed;
+  inset: 0 0 auto 0;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  height: var(--topo);
+  padding: env(safe-area-inset-top) 4px 0 16px;
+  background: var(--superficie);
+  border-bottom: 1px solid var(--borda);
+}
+
+.barra-voluntario {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-width: 0;
+  line-height: 1.2;
+}
+
+.barra-nome {
+  overflow: hidden;
+  font-weight: 700;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.barra-hoje {
+  font-size: 14px;
+  color: var(--texto-suave);
+}
+
+.barra-status {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 48px;
+  padding: 0 10px;
+  border: 0;
+  background: transparent;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--enviado);
+  white-space: nowrap;
+}
+
+.barra-status::before {
+  content: "";
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+.barra-status.pendente {
+  color: var(--pendente);
+}
+
+.botao-menu {
+  width: 48px;
+  height: 48px;
+  border: 0;
+  background: transparent;
+  font-size: 24px;
+}
+
+.menu {
+  position: fixed;
+  top: calc(var(--topo) + 4px);
+  right: 8px;
+  z-index: 11;
+  display: flex;
+  flex-direction: column;
+  min-width: 230px;
+  overflow: hidden;
+  background: var(--superficie);
+  border: 1px solid var(--borda);
+  border-radius: var(--raio);
+  box-shadow: 0 10px 30px rgb(0 0 0 / 0.15);
+}
+
+.menu button {
+  min-height: 52px;
+  padding: 0 18px;
+  border: 0;
+  border-bottom: 1px solid var(--borda);
+  background: transparent;
+  text-align: left;
+}
+
+.menu button:last-child {
+  border-bottom: 0;
+}
+
+.menu button:active {
+  background: var(--fundo);
+}
+
+/* ---------- Telas ---------- */
+
+main {
+  max-width: 520px;
+  margin: 0 auto;
+  padding: calc(var(--topo) + 20px) 16px calc(24px + env(safe-area-inset-bottom));
+}
+
+.tela,
+.formulario {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.evento {
+  margin: 0;
+  font-weight: 700;
+  color: var(--texto-suave);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.campo {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.campo label {
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.opcional {
+  font-weight: 400;
+  color: var(--texto-suave);
+}
+
+/* 18px evita o zoom automático do Safari ao tocar no campo. */
+.campo input {
+  width: 100%;
+  min-height: 52px;
+  padding: 0 14px;
+  border: 1px solid var(--borda);
+  border-radius: var(--raio);
+  background: var(--superficie);
+  font-size: 18px;
+}
+
+.campo input:focus,
+.checkbox:focus-within {
+  border-color: var(--foco);
+  outline: 3px solid rgb(31 111 235 / 0.3);
+}
+
+.checkbox {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 56px;
+  padding: 0 14px;
+  border: 1px solid var(--borda);
+  border-radius: var(--raio);
+  background: var(--superficie);
+  font-weight: 700;
+}
+
+.checkbox input {
+  width: 26px;
+  height: 26px;
+  margin: 0;
+  accent-color: var(--principal);
+}
+
+.botao {
+  min-height: 56px;
+  padding: 0 20px;
+  border: 0;
+  border-radius: var(--raio);
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.botao:active {
+  filter: brightness(0.85);
+}
+
+.botao-principal {
+  background: var(--principal);
+  color: var(--principal-texto);
+}
+
+.botao-grande {
+  min-height: 72px;
+  font-size: 20px;
+}
+
+.link {
+  align-self: center;
+  min-height: 48px;
+  padding: 0 16px;
+  border: 0;
+  background: transparent;
+  font-weight: 700;
+  color: var(--link);
+  text-decoration: underline;
+}
+
+.botoes-passo {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.botao-passo {
+  min-height: 96px;
+  color: #ffffff;
+  font-size: 22px;
+}
+
+.tela-qr {
+  align-items: center;
+  text-align: center;
+}
+
+.qr-imagem {
+  display: block;
+  width: min(84vw, 56vh, 440px);
+  aspect-ratio: 1;
+  padding: 12px;
+  border-radius: var(--raio);
+  background: #ffffff;
+  object-fit: contain;
+}
+
+.tela-qr .botao {
+  align-self: stretch;
+}
+
+/* ---------- Aviso temporário ---------- */
+
+/* Fica no topo e deixa o toque passar, para não esconder nem bloquear os botões de baixo. */
+.aviso {
+  position: fixed;
+  top: calc(var(--topo) + 8px);
+  right: 16px;
+  left: 16px;
+  pointer-events: none;
+  z-index: 20;
+  max-width: 488px;
+  margin: 0 auto;
+  padding: 14px 16px;
+  border-radius: var(--raio);
+  background: var(--texto);
+  color: #ffffff;
+  text-align: center;
+  box-shadow: 0 10px 30px rgb(0 0 0 / 0.25);
+}
