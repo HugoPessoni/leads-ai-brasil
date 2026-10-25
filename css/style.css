@@ -384,6 +384,32 @@ main {
   object-fit: contain;
 }
 
+/* svh = altura visível com as barras do navegador abertas (Safari 15.4+, Chrome 108+). */
+@supports (height: 1svh) {
+  .qr-imagem {
+    width: min(84vw, 52svh, 440px);
+  }
+}
+
+/* Telas baixas (iPhone SE, Androids pequenos): o QR e o "Novo lead" vêm antes do resto. */
+@media (max-height: 740px) {
+  .tela-qr {
+    gap: 12px;
+  }
+
+  .tela-qr .logo {
+    width: 100px;
+  }
+
+  .tela-qr h1 {
+    font-size: 24px;
+  }
+
+  .tela-qr .botao-grande {
+    min-height: 60px;
+  }
+}
+
 .qr-erro {
   margin: 0;
   padding: 16px;

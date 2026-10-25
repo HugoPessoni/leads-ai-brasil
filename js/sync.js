@@ -9,9 +9,27 @@
 
   var emAndamento = null;
   var ouvintes = [];
+  // Lead ainda na tela do QR: a opção pode ser trocada, então só sai ao tocar em "Novo lead".
+  // Fica só na memória: se o app fechar, o lead é enviado na próxima abertura.
+  var retido = null;
+
+  function enviaveis() {
+    return Fila.pendentes().filter(function (lead) {
+      return lead.id !== retido;
+    });
+  }
 
   function estado() {
-    return { pendentes: Fila.pendentes().length, enviando: !!emAndamento };
+    return { pendentes: Fila.pendentes().length, enviando: !!emAndamento, retido: !!retido };
+  }
+
+  function reter(id) {
+    retido = id;
+  }
+
+  function liberar() {
+    retido = null;
+    return enviar();
   }
 
   function aoMudar(ouvinte) {
@@ -77,11 +95,11 @@
    */
   function enviar() {
     if (emAndamento) return emAndamento;
-    if (!Fila.pendentes().length) return Promise.resolve({ enviados: 0 });
+    if (!enviaveis().length) return Promise.resolve({ enviados: 0 });
 
     var enviados = 0;
     function proximoLote() {
-      var lote = Fila.pendentes().slice(0, config.loteMaximo);
+      var lote = enviaveis().slice(0, config.loteMaximo);
       if (!lote.length) return { enviados: enviados };
       return enviarLote(lote).then(function (ids) {
         var marcados = Fila.marcarEnviados(ids);
@@ -107,11 +125,11 @@
     return emAndamento;
   }
 
-  // Envia na abertura (pendentes de antes), quando a internet volta e a cada intervalo enquanto houver pendentes.
+  // Envia na abertura (pendentes de antes), quando a internet volta e a cada intervalo enquanto houver o que enviar.
   function iniciar() {
     global.addEventListener('online', enviar);
     setInterval(function () {
-      if (navigator.onLine !== false && Fila.pendentes().length) enviar();
+      if (navigator.onLine !== false && enviaveis().length) enviar();
     }, config.intervaloSyncSegundos * 1000);
     enviar();
   }
@@ -120,6 +138,8 @@
     iniciar: iniciar,
     enviar: enviar,
     estado: estado,
-    aoMudar: aoMudar
+    aoMudar: aoMudar,
+    reter: reter,
+    liberar: liberar
   };
 })(window);

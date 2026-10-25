@@ -117,8 +117,10 @@ Uma página com quatro telas; depois do primeiro uso, o voluntário só passa pe
    - "Receber nosso contato" grava `proximo_passo = contato`.
    - Cada botão tem uma cor fixa, para o voluntário reconhecer pelo treinamento; o texto é neutro para quem está olhando a tela.
    - Campo opcional "Observação", de uma linha, acima dos botões.
-   - Ao tocar no botão, o lead é salvo no celular e o envio começa em segundo plano, sem travar a tela.
+   - Ao tocar no botão, o lead é salvo no celular na hora, sem travar a tela.
 4. **QR para a empresa:** tela cheia com a imagem do QR do passo escolhido (agendamento ou contato), um título curto vindo do `config.js` e o botão "Novo lead", que volta ao cadastro com os campos limpos.
+   - Link "Trocar opção": volta à tela 3 com os dados preenchidos. Escolher de novo corrige o mesmo lead (mesmo `id` e horário), sem criar outro.
+   - Por isso o lead da tela do QR só vai para a planilha ao tocar em "Novo lead" (ou ao trocar de voluntário). Se o app fechar antes, ele é enviado na próxima abertura.
 
 Em todas as telas, uma barra fixa no topo mostra o nome do voluntário, quantos leads ele cadastrou hoje neste celular e o status de envio ("Tudo enviado" ou "3 pendentes"). Tocar no status força o envio.
 
@@ -129,7 +131,7 @@ O menu tem três itens: Enviar pendentes, Exportar backup, Trocar voluntário.
 Todo lead é gravado no celular antes de qualquer envio; a planilha recebe uma cópia assim que houver internet, e nada se perde se o sinal cair.
 
 - **Fila:** `localStorage`, chave `leads_v1`, um array de leads. Cada lead tem `id` (gerado com `crypto.randomUUID()`), `capturado_em` (horário do celular) e `status`: `pendente` ou `enviado`.
-- **Quando envia:** logo após salvar; no evento `online` do navegador; a cada 30 segundos enquanto houver pendentes; ao tocar no status da barra.
+- **Quando envia:** ao tocar em "Novo lead" (o lead da tela do QR fica retido até lá); ao abrir o app; no evento `online` do navegador; a cada 30 segundos enquanto houver pendentes; ao tocar no status da barra.
 - **Como envia:** os pendentes em lote, até 20 por requisição, com `fetch(apiUrl, { method: 'POST', body: JSON.stringify({ token, leads }) })`. Não definir `Content-Type`: o corpo vai como texto simples e evita a verificação prévia de CORS, que o Apps Script não atende.
 - **Confirmação:** marcar como `enviado` só os `id`s que a resposta listar em `gravados` ou `ignorados` (já existiam). Erro ou mais de 15 segundos sem resposta: continuam pendentes para o próximo ciclo.
 - **Nunca apagar** leads do celular, mesmo enviados. Eles servem de backup e alimentam o aviso de crachá duplicado.

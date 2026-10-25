@@ -20,7 +20,9 @@
   var estado = {
     voluntario: lerVoluntario(),
     cracha: null, // resultado de Core.parseBadge da última leitura
-    origemNome: 'manual'
+    origemNome: 'manual',
+    // Lead já salvo que ainda pode ser corrigido ("Trocar opção" na tela do QR), até tocar em "Novo lead".
+    leadAberto: null // { id, capturadoEm }
   };
 
   function $(id) {
@@ -78,6 +80,7 @@
     }
     Sync.enviar().then(function (resultado) {
       if (resultado.erro) avisar('Não foi possível enviar agora. O app tenta de novo sozinho.');
+      else if (!resultado.enviados && Sync.estado().retido) avisar('O lead da tela vai para a planilha ao tocar em "Novo lead".');
       else avisar(resultado.enviados === 1 ? '1 lead enviado.' : resultado.enviados + ' leads enviados.');
     });
   }
@@ -110,6 +113,7 @@
     if (acao === 'enviar') enviarAgora();
     if (acao === 'backup') avisar('O backup entra na fase 9.');
     if (acao === 'trocar') {
+      if (fecharLead()) limparCadastro();
       $('voluntario-nome').value = estado.voluntario;
       mostrarTela('identificacao');
     }
@@ -134,18 +138,16 @@
 
   /**
    * Recebe o texto lido do QR. Sem correspondência, o texto vai para o Nome e a origem fica manual.
-   * Crachá já cadastrado neste celular: pergunta antes. Retorna false se o voluntário desistir.
+   * Crachá já cadastrado neste celular: pergunta antes. Se o voluntário desistir, a leitura é ignorada
+   * e o formulário fica como estava. Retorna false nesse caso.
    */
   function aplicarLeitura(texto) {
     var cracha = Core.parseBadge(texto);
-    var anterior = cracha && Fila.ultimoDoCracha(cracha.codigo);
+    var anterior = cracha && Fila.ultimoDoCracha(cracha.codigo, estado.leadAberto && estado.leadAberto.id);
     if (anterior) {
       var pergunta = cracha.nome + ' já foi cadastrado neste celular ' +
         Core.formatarHorario(anterior.capturado_em, new Date()) + '. Cadastrar de novo?';
-      if (!window.confirm(pergunta)) {
-        limparCadastro();
-        return false;
-      }
+      if (!window.confirm(pergunta)) return false;
     }
     estado.cracha = cracha;
     estado.origemNome = cracha ? 'qr' : 'manual';
@@ -243,11 +245,15 @@
     });
   }
 
-  // Salva o lead no celular primeiro; o envio começa em segundo plano, sem travar a tela.
+  /**
+   * Salva o lead no celular na hora. Se veio de "Trocar opção", corrige o mesmo lead (mesmo id e horário).
+   * O envio deste lead espera o "Novo lead"; os outros pendentes seguem em segundo plano.
+   */
   function escolherPasso(chave) {
+    if (!estado.leadAberto) estado.leadAberto = { id: Fila.novoId(), capturadoEm: new Date() };
     var lead = Core.montarLead({
-      id: Fila.novoId(),
-      agora: new Date(),
+      id: estado.leadAberto.id,
+      agora: estado.leadAberto.capturadoEm,
       voluntario: estado.voluntario,
       dispositivo: Fila.dispositivo(),
       cracha: estado.cracha,
@@ -261,7 +267,8 @@
       observacao: $('lead-observacao').value
     });
     try {
-      Fila.adicionar(lead);
+      Sync.reter(lead.id);
+      Fila.salvar(lead);
     } catch (erro) {
       avisar('Não foi possível salvar no celular. Anote os dados e avise a coordenação.');
       return;
@@ -270,6 +277,15 @@
     atualizarBarra();
     mostrarQr(config.proximosPassos[chave]);
     Sync.enviar();
+  }
+
+  // Encerra o lead da tela do QR: a partir daqui ele não muda mais e já pode ir para a planilha.
+  // Retorna true se havia um lead aberto.
+  function fecharLead() {
+    if (!estado.leadAberto) return false;
+    estado.leadAberto = null;
+    Sync.liberar();
+    return true;
   }
 
   /* ---------- Tela 4: QR ---------- */
@@ -300,6 +316,7 @@
   }
 
   function novoLead() {
+    fecharLead();
     limparCadastro();
     mostrarTela('cadastro');
   }
@@ -332,6 +349,9 @@
       mostrarTela('cadastro');
     });
     $('novo-lead').addEventListener('click', novoLead);
+    $('trocar-opcao').addEventListener('click', function () {
+      mostrarTela('passo');
+    });
     $('qr-imagem').addEventListener('error', qrNaoCarregou);
     preCarregarQrs();
 

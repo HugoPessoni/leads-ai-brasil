@@ -22,8 +22,16 @@
     localStorage.setItem(CHAVE_LEADS, JSON.stringify(leads));
   }
 
-  function adicionar(lead) {
+  // Grava o lead; se o id já existe (opção trocada na tela do QR), substitui no mesmo lugar.
+  function salvar(lead) {
     var leads = todos();
+    for (var i = 0; i < leads.length; i++) {
+      if (leads[i].id === lead.id) {
+        leads[i] = lead;
+        gravar(leads);
+        return;
+      }
+    }
     leads.push(lead);
     gravar(leads);
   }
@@ -59,12 +67,12 @@
     }).length;
   }
 
-  // Cadastro mais recente deste crachá neste celular, ou null.
-  function ultimoDoCracha(codigo) {
+  // Cadastro mais recente deste crachá neste celular, ou null. ignorarId: o lead que está sendo corrigido.
+  function ultimoDoCracha(codigo, ignorarId) {
     if (!codigo) return null;
     var leads = todos();
     for (var i = leads.length - 1; i >= 0; i--) {
-      if (leads[i].cracha_codigo === codigo) return leads[i];
+      if (leads[i].cracha_codigo === codigo && leads[i].id !== ignorarId) return leads[i];
     }
     return null;
   }
@@ -99,7 +107,7 @@
 
   global.Fila = {
     todos: todos,
-    adicionar: adicionar,
+    salvar: salvar,
     pendentes: pendentes,
     marcarEnviados: marcarEnviados,
     contarHoje: contarHoje,
