@@ -104,12 +104,72 @@
     return erros;
   }
 
+  /**
+   * Lead pronto para a fila e para a planilha (mesmos nomes de campo do Code.gs).
+   * dados: { id, agora, voluntario, dispositivo, cracha, origemNome, nome, empresa, celular, email,
+   *          autorizou, proximoPasso, observacao }
+   */
+  function montarLead(dados) {
+    var cracha = dados.cracha;
+    return {
+      id: dados.id,
+      capturado_em: dados.agora.toISOString(),
+      status: 'pendente',
+      voluntario: dados.voluntario,
+      cracha_codigo: cracha ? cracha.codigo : '',
+      cracha_tipo: cracha ? cracha.prefixo : '',
+      nome: String(dados.nome || '').trim().replace(/\s+/g, ' '),
+      empresa: String(dados.empresa || '').trim(),
+      celular: formatarCelular(dados.celular),
+      email: String(dados.email || '').trim().toLowerCase(),
+      proximo_passo: dados.proximoPasso,
+      observacao: String(dados.observacao || '').trim(),
+      autorizou_contato: dados.autorizou === true,
+      origem_nome: dados.origemNome === 'qr' ? 'qr' : 'manual',
+      dispositivo: dados.dispositivo
+    };
+  }
+
+  // Mesmo dia no relógio do celular.
+  function mesmoDia(iso, agora) {
+    var data = new Date(iso);
+    return (
+      data.getFullYear() === agora.getFullYear() &&
+      data.getMonth() === agora.getMonth() &&
+      data.getDate() === agora.getDate()
+    );
+  }
+
+  function doisDigitos(n) {
+    return (n < 10 ? '0' : '') + n;
+  }
+
+  // "hoje às 14:32" ou "27/10 às 09:05".
+  function formatarHorario(iso, agora) {
+    var data = new Date(iso);
+    var hora = doisDigitos(data.getHours()) + ':' + doisDigitos(data.getMinutes());
+    var dia = mesmoDia(iso, agora) ? 'hoje' : doisDigitos(data.getDate()) + '/' + doisDigitos(data.getMonth() + 1);
+    return dia + ' às ' + hora;
+  }
+
+  // ids que a planilha confirmou (gravados agora ou já existentes). Resposta com erro não confirma nada.
+  function idsConfirmados(resposta) {
+    if (!resposta || resposta.ok !== true) return [];
+    var gravados = Array.isArray(resposta.gravados) ? resposta.gravados : [];
+    var ignorados = Array.isArray(resposta.ignorados) ? resposta.ignorados : [];
+    return gravados.concat(ignorados);
+  }
+
   global.Core = {
     parseBadge: parseBadge,
     formatarNome: formatarNome,
     formatarCelular: formatarCelular,
     celularValido: celularValido,
     emailValido: emailValido,
-    validarCadastro: validarCadastro
+    validarCadastro: validarCadastro,
+    montarLead: montarLead,
+    mesmoDia: mesmoDia,
+    formatarHorario: formatarHorario,
+    idsConfirmados: idsConfirmados
   };
 })(window);

@@ -179,6 +179,73 @@
         igual(camposComErro(Core.validarCadastro(campos({ nome: '  ' }), true)), ['nome']);
       });
 
+      /* ---------- montarLead ---------- */
+
+      function dadosLead(extra) {
+        var base = {
+          id: 'id-1',
+          agora: new Date(Date.UTC(2026, 9, 28, 13, 5, 0)),
+          voluntario: 'Ana',
+          dispositivo: 'K7Q2XM',
+          cracha: Core.parseBadge('DOI-467956180/ANDERSON SANTOS'),
+          origemNome: 'qr',
+          nome: '  Anderson   Santos ',
+          empresa: ' Acme ',
+          celular: '11987654321',
+          email: ' Anderson@ACME.com ',
+          autorizou: true,
+          proximoPasso: 'reuniao',
+          observacao: ' quer demo '
+        };
+        for (var k in extra) base[k] = extra[k];
+        return base;
+      }
+
+      teste('montarLead com crachá lido', function () {
+        igual(Core.montarLead(dadosLead({})), {
+          id: 'id-1',
+          capturado_em: '2026-10-28T13:05:00.000Z',
+          status: 'pendente',
+          voluntario: 'Ana',
+          cracha_codigo: 'DOI-467956180',
+          cracha_tipo: 'DOI',
+          nome: 'Anderson Santos',
+          empresa: 'Acme',
+          celular: '(11) 98765-4321',
+          email: 'anderson@acme.com',
+          proximo_passo: 'reuniao',
+          observacao: 'quer demo',
+          autorizou_contato: true,
+          origem_nome: 'qr',
+          dispositivo: 'K7Q2XM'
+        });
+      });
+      teste('montarLead digitado, sem crachá e sem celular', function () {
+        var lead = Core.montarLead(dadosLead({ cracha: null, origemNome: 'manual', celular: '', proximoPasso: 'contato' }));
+        igual([lead.cracha_codigo, lead.cracha_tipo, lead.celular, lead.origem_nome, lead.proximo_passo], ['', '', '', 'manual', 'contato']);
+      });
+
+      /* ---------- Datas e confirmação do envio ---------- */
+
+      teste('mesmoDia usa o relógio do celular', function () {
+        var agora = new Date(2026, 9, 28, 23, 50);
+        igual(Core.mesmoDia(new Date(2026, 9, 28, 0, 5).toISOString(), agora), true);
+        igual(Core.mesmoDia(new Date(2026, 9, 27, 23, 59).toISOString(), agora), false);
+      });
+      teste('formatarHorario hoje e outro dia', function () {
+        var agora = new Date(2026, 9, 28, 18, 0);
+        igual(Core.formatarHorario(new Date(2026, 9, 28, 14, 32).toISOString(), agora), 'hoje às 14:32');
+        igual(Core.formatarHorario(new Date(2026, 9, 27, 9, 5).toISOString(), agora), '27/10 às 09:05');
+      });
+      teste('idsConfirmados junta gravados e ignorados', function () {
+        igual(Core.idsConfirmados({ ok: true, gravados: ['a'], ignorados: ['b'] }), ['a', 'b']);
+      });
+      teste('idsConfirmados não confirma nada com erro ou resposta estranha', function () {
+        igual(Core.idsConfirmados({ ok: false, erro: 'Token inválido' }), []);
+        igual(Core.idsConfirmados(null), []);
+        igual(Core.idsConfirmados({ ok: true }), []);
+      });
+
       /* ---------- Resultado ---------- */
 
       var falhas = resultados.filter(function (r) { return !r.ok; }).length;
