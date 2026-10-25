@@ -4,15 +4,8 @@
 
   var config = window.APP_CONFIG;
   var Core = window.Core;
+  var Scanner = window.Scanner;
   var CHAVE_VOLUNTARIO = 'voluntario_v1';
-
-  // Leitura simulada até a câmera entrar (fase 4): textos como vêm no QR do crachá.
-  var LEITURAS_FICTICIAS = [
-    'DOI-467956180/ANDERSON SANTOS',
-    'FD-0D26715492/GABRIEL MONTEIRO',
-    'DOI-ABC123/MARIA DA CONCEIÇÃO',
-    'DOI-467956180/ANDERSON SANTOS FD-0D26715492/GABRIEL MONTEIRO'
-  ];
 
   // Campo do formulário de cadastro de cada nome usado por Core.validarCadastro.
   var CAMPOS = {
@@ -26,8 +19,7 @@
     voluntario: lerVoluntario(),
     cracha: null, // resultado de Core.parseBadge da última leitura
     origemNome: 'manual',
-    leadsHoje: 0, // fictício até a fila local entrar (fase 5)
-    leiturasSimuladas: 0
+    leadsHoje: 0 // fictício até a fila local entrar (fase 5)
   };
 
   function $(id) {
@@ -129,10 +121,22 @@
   }
 
   function lerCracha() {
-    var texto = LEITURAS_FICTICIAS[estado.leiturasSimuladas % LEITURAS_FICTICIAS.length];
-    estado.leiturasSimuladas++;
-    aplicarLeitura(texto);
-    avisar('Leitura simulada. A câmera entra na fase 4.');
+    if (!$('leitor').hidden) return;
+    $('leitor').hidden = false;
+    Scanner.abrir('leitor-video', function (texto) {
+      $('leitor').hidden = true;
+      if (navigator.vibrate) navigator.vibrate(200); // o Safari do iPhone não vibra
+      aplicarLeitura(texto);
+      avisar(estado.cracha ? 'Crachá lido: ' + estado.cracha.nome : 'QR não reconhecido. Confira o nome.');
+    }).catch(function (erro) {
+      $('leitor').hidden = true;
+      avisar(Scanner.mensagemDeErro(erro));
+    });
+  }
+
+  function cancelarLeitura() {
+    Scanner.fechar();
+    $('leitor').hidden = true;
   }
 
   function digitarNome() {
@@ -231,6 +235,11 @@
 
     $('form-identificacao').addEventListener('submit', confirmarVoluntario);
     $('ler-cracha').addEventListener('click', lerCracha);
+    $('leitor-cancelar').addEventListener('click', cancelarLeitura);
+    // Saiu do app com a câmera aberta: desliga, para não gastar bateria nem travar a câmera.
+    document.addEventListener('visibilitychange', function () {
+      if (document.hidden && !$('leitor').hidden) cancelarLeitura();
+    });
     $('digitar-nome').addEventListener('click', digitarNome);
     $('lead-celular').addEventListener('input', mascararCelular);
     $('form-cadastro').addEventListener('submit', continuarCadastro);

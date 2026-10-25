@@ -388,6 +388,56 @@ main {
   align-self: stretch;
 }
 
+.botao-secundario {
+  border: 1.5px solid var(--branco);
+  background: transparent;
+  color: var(--branco);
+}
+
+/* ---------- Leitor do QR ---------- */
+
+.leitor {
+  position: fixed;
+  inset: 0;
+  z-index: 30;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  padding: calc(24px + env(safe-area-inset-top)) 16px calc(24px + env(safe-area-inset-bottom));
+  background: var(--preto);
+}
+
+.leitor-instrucao {
+  margin: 0;
+  font-family: var(--fonte-titulo);
+  font-size: 26px;
+  font-weight: 700;
+  line-height: 1.1;
+  text-align: center;
+  text-transform: uppercase;
+}
+
+.leitor-video {
+  width: 100%;
+  min-height: 280px;
+  max-width: 480px;
+  margin: 0 auto;
+  overflow: hidden;
+  border: 1.5px solid var(--verde);
+  border-radius: 20px;
+  background: #0b0b0b;
+}
+
+.leitor-video video {
+  display: block;
+}
+
+.leitor .botao {
+  width: 100%;
+  max-width: 480px;
+  margin: auto auto 0;
+}
+
 /* ---------- Aviso temporário ---------- */
 
 /* Fica no topo e deixa o toque passar, para não esconder nem bloquear os botões de baixo. */

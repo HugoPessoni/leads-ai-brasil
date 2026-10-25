@@ -88,10 +88,19 @@
     </section>
   </main>
 
+  <!-- Leitor do QR do crachá: abre por cima de tudo -->
+  <div id="leitor" class="leitor" hidden>
+    <p class="leitor-instrucao">Aponte a câmera para o QR do crachá</p>
+    <div id="leitor-video" class="leitor-video"></div>
+    <button id="leitor-cancelar" class="botao botao-secundario" type="button">Cancelar</button>
+  </div>
+
   <div id="aviso" class="aviso" role="status" hidden></div>
 
   <script src="config.js"></script>
+  <script src="vendor/html5-qrcode.min.js"></script>
   <script src="js/core.js"></script>
+  <script src="js/scanner.js"></script>
   <script src="js/app.js"></script>
 </body>
 </html>
