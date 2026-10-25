@@ -384,6 +384,14 @@ main {
   object-fit: contain;
 }
 
+.qr-erro {
+  margin: 0;
+  padding: 16px;
+  border: 1.5px solid var(--lima);
+  border-radius: var(--raio);
+  font-weight: 700;
+}
+
 .tela-qr .botao {
   align-self: stretch;
 }

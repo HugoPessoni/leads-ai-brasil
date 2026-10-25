@@ -267,15 +267,37 @@
       return;
     }
 
-    var passo = config.proximosPassos[chave];
     atualizarBarra();
-    $('qr-titulo').textContent = passo.tituloQr;
-    $('qr-imagem').src = passo.imagem;
-    mostrarTela('qr');
+    mostrarQr(config.proximosPassos[chave]);
     Sync.enviar();
   }
 
   /* ---------- Tela 4: QR ---------- */
+
+  function mostrarQr(passo) {
+    var imagem = $('qr-imagem');
+    $('qr-titulo').textContent = passo.tituloQr;
+    $('qr-erro').hidden = true;
+    imagem.hidden = false;
+    imagem.alt = 'QR code: ' + passo.tituloQr;
+    imagem.src = passo.imagem;
+    mostrarTela('qr');
+  }
+
+  // Imagem do QR faltando ou com nome errado no config.js: avisa em vez de mostrar um quadro vazio.
+  function qrNaoCarregou() {
+    var imagem = $('qr-imagem');
+    imagem.hidden = true;
+    $('qr-erro').textContent = 'Não foi possível abrir a imagem do QR (' + imagem.getAttribute('src') + '). Avise a coordenação.';
+    $('qr-erro').hidden = false;
+  }
+
+  // Baixa as imagens dos QRs na abertura, para a tela 4 aparecer na hora.
+  function preCarregarQrs() {
+    Object.keys(config.proximosPassos).forEach(function (chave) {
+      new Image().src = config.proximosPassos[chave].imagem;
+    });
+  }
 
   function novoLead() {
     limparCadastro();
@@ -310,6 +332,8 @@
       mostrarTela('cadastro');
     });
     $('novo-lead').addEventListener('click', novoLead);
+    $('qr-imagem').addEventListener('error', qrNaoCarregou);
+    preCarregarQrs();
 
     $('barra-status').addEventListener('click', enviarAgora);
     $('botao-menu').addEventListener('click', function (evento) {
