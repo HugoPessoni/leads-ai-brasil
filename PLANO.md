@@ -108,7 +108,7 @@ Uma página com quatro telas; depois do primeiro uso, o voluntário só passa pe
 2. **Cadastro:**
    - Botão grande "Ler crachá" abre a câmera traseira. Ao ler, a câmera fecha, o celular vibra e o nome é preenchido.
    - Link "Digitar nome" para quando o QR falhar.
-   - Campos: Nome (editável), Empresa (opcional), Celular, E-mail. Exigir pelo menos um entre celular e e-mail.
+   - Campos: Nome (editável), Empresa (opcional), Celular, E-mail. Exigir pelo menos um entre celular e e-mail: só celular, só e-mail ou os dois seguem para o QR. Os dois ficam num grupo "Contato — preencha pelo menos um"; o que for preenchido precisa estar completo, e a mensagem de erro diz para corrigir ou apagar.
    - Celular com máscara `(11) 98765-4321` e teclado numérico; e-mail com teclado de e-mail e validação de formato.
    - Checkbox "Autorizou o contato" (LGPD), obrigatório.
    - Se o mesmo crachá já foi cadastrado neste celular, avisar com o horário do cadastro anterior e perguntar se quer cadastrar de novo.

@@ -160,16 +160,35 @@
       teste('Cadastro completo não tem erros', function () {
         igual(Core.validarCadastro(campos({}), true), []);
       });
-      teste('Só celular ou só e-mail é aceito', function () {
+      teste('Contato: só celular segue para o QR', function () {
         igual(Core.validarCadastro(campos({ email: '' }), true), []);
+      });
+      teste('Contato: só e-mail segue para o QR', function () {
         igual(Core.validarCadastro(campos({ celular: '' }), true), []);
+        igual(Core.validarCadastro(campos({ celular: '   ' }), true), []);
+      });
+      teste('Contato: celular e e-mail seguem para o QR', function () {
+        igual(Core.validarCadastro(campos({}), true), []);
+        igual(Core.validarCadastro(campos({ celular: '(11) 3456-7890' }), true), []);
       });
       teste('Sem celular e sem e-mail não deixa salvar', function () {
-        igual(camposComErro(Core.validarCadastro(campos({ celular: '', email: '  ' }), true)), ['celular', 'email']);
+        var erros = Core.validarCadastro(campos({ celular: '', email: '  ' }), true);
+        igual(camposComErro(erros), ['contato']);
+        igual(erros[0].mensagem, 'Informe pelo menos um contato: celular ou e-mail.');
       });
-      teste('Celular ou e-mail inválido', function () {
-        igual(camposComErro(Core.validarCadastro(campos({ celular: '(11) 9876' }), true)), ['celular']);
-        igual(camposComErro(Core.validarCadastro(campos({ email: 'anderson@' }), true)), ['email']);
+      teste('Celular começado e não terminado: corrigir ou apagar', function () {
+        igual(Core.validarCadastro(campos({ celular: '(11) 9876' }), true), [
+          { campo: 'celular', mensagem: 'Celular incompleto: corrija com DDD ou apague para seguir só com o e-mail.' }
+        ]);
+        igual(Core.validarCadastro(campos({ celular: '98765-4321', email: '' }), true), [
+          { campo: 'celular', mensagem: 'Celular incompleto: digite DDD + número.' }
+        ]);
+      });
+      teste('E-mail inválido: corrigir ou apagar', function () {
+        igual(Core.validarCadastro(campos({ email: 'anderson@' }), true), [
+          { campo: 'email', mensagem: 'E-mail inválido: corrija ou apague para seguir só com o celular.' }
+        ]);
+        igual(camposComErro(Core.validarCadastro(campos({ email: 'anderson@', celular: '' }), true)), ['email']);
       });
       teste('Autorização obrigatória quando exigida', function () {
         igual(camposComErro(Core.validarCadastro(campos({ autorizou: false }), true)), ['autorizou']);

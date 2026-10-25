@@ -52,14 +52,17 @@
           <label for="lead-empresa">Empresa <span class="opcional">(opcional)</span></label>
           <input id="lead-empresa" type="text" autocomplete="off" autocapitalize="words" enterkeyhint="next">
         </div>
-        <div class="campo">
-          <label for="lead-celular">Celular</label>
-          <input id="lead-celular" type="tel" inputmode="numeric" autocomplete="off" placeholder="(11) 98765-4321" enterkeyhint="next">
-        </div>
-        <div class="campo">
-          <label for="lead-email">E-mail</label>
-          <input id="lead-email" type="email" inputmode="email" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="nome@empresa.com" enterkeyhint="done">
-        </div>
+        <fieldset id="grupo-contato" class="grupo-contato">
+          <legend>Contato <span class="opcional">— preencha pelo menos um</span></legend>
+          <div class="campo">
+            <label for="lead-celular">Celular</label>
+            <input id="lead-celular" type="tel" inputmode="numeric" autocomplete="off" placeholder="(11) 98765-4321" enterkeyhint="next">
+          </div>
+          <div class="campo">
+            <label for="lead-email">E-mail</label>
+            <input id="lead-email" type="email" inputmode="email" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="nome@empresa.com" enterkeyhint="done">
+          </div>
+        </fieldset>
         <label class="checkbox">
           <input id="lead-autorizou" type="checkbox">
           <span>Autorizou o contato</span>

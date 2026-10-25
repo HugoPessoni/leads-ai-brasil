@@ -9,9 +9,11 @@
   var Sync = window.Sync;
   var CHAVE_VOLUNTARIO = 'voluntario_v1';
 
-  // Campo do formulário de cadastro de cada nome usado por Core.validarCadastro.
+  // Elemento do formulário de cadastro de cada nome usado por Core.validarCadastro.
+  // "contato" é o grupo celular + e-mail: o evento input dos dois campos chega até ele.
   var CAMPOS = {
     nome: 'lead-nome',
+    contato: 'grupo-contato',
     celular: 'lead-celular',
     email: 'lead-email',
     autorizou: 'lead-autorizou'

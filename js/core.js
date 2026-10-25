@@ -78,7 +78,10 @@
 
   /**
    * Valida o cadastro antes de seguir para o próximo passo.
+   * Contato: basta um entre celular e e-mail (só celular, só e-mail ou os dois). O que for preenchido
+   * precisa estar completo; o voluntário pode corrigir ou apagar.
    * campos: { nome, celular, email, autorizou }. Retorna uma lista de { campo, mensagem }, vazia se estiver ok.
+   * campo "contato" = falta os dois.
    */
   function validarCadastro(campos, exigirAutorizacao) {
     var erros = [];
@@ -89,14 +92,19 @@
       erros.push({ campo: 'nome', mensagem: 'Informe o nome.' });
     }
     if (!celular && !email) {
-      erros.push({ campo: 'celular', mensagem: 'Informe o celular ou o e-mail.' });
-      erros.push({ campo: 'email', mensagem: 'Informe o celular ou o e-mail.' });
+      erros.push({ campo: 'contato', mensagem: 'Informe pelo menos um contato: celular ou e-mail.' });
     }
     if (celular && !celularValido(celular)) {
-      erros.push({ campo: 'celular', mensagem: 'Celular incompleto ou inválido.' });
+      erros.push({
+        campo: 'celular',
+        mensagem: email ? 'Celular incompleto: corrija com DDD ou apague para seguir só com o e-mail.' : 'Celular incompleto: digite DDD + número.'
+      });
     }
     if (email && !emailValido(email)) {
-      erros.push({ campo: 'email', mensagem: 'E-mail inválido.' });
+      erros.push({
+        campo: 'email',
+        mensagem: celular ? 'E-mail inválido: corrija ou apague para seguir só com o celular.' : 'E-mail inválido.'
+      });
     }
     if (exigirAutorizacao && !campos.autorizou) {
       erros.push({ campo: 'autorizou', mensagem: 'Marque a autorização de contato.' });
