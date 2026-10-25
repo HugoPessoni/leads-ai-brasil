@@ -31,6 +31,7 @@ Restrições técnicas:
 - HTML, CSS e JavaScript puros. Sem framework, sem etapa de build, sem npm no frontend.
 - Bibliotecas copiadas para `vendor/`, nunca via CDN, para o app abrir sem internet.
 - Interface em português do Brasil, mobile-first, botões com pelo menos 48 px de altura, usável com uma mão.
+- Identidade visual do AI.Brasil Experience 2026: fundo preto, verde `#6BDD3E`, amarelo-lima `#E4EF3A`, títulos em Rajdhani e textos em Montserrat (fontes em `fonts/`). Logo do CEIA em branco nas telas de identificação e do QR.
 - Funcionar no Safari (iPhone) e no Chrome (Android) atuais.
 - Tudo que é editável (URLs, textos dos botões, imagens dos QRs) fica em `config.js`. Nenhuma URL ou lista solta no meio do código.
 - Funções puras (parser do QR, validações, formatação) ficam em `js/core.js` e são testadas em `tests.html`, que roda abrindo no navegador.
@@ -56,7 +57,8 @@ A linha tracejada é o plano B: o backup exportado do celular é importado diret
 │   └── app.js            # telas e fluxo
 ├── vendor/
 │   └── html5-qrcode.min.js   # leitura de QR pela câmera
-├── img/                  # imagens prontas dos QRs mostrados para a empresa
+├── img/                  # QRs mostrados para a empresa e logo do CEIA
+├── fonts/                # Rajdhani e Montserrat (identidade AI.Brasil Experience)
 ├── sw.js                 # service worker: cache para uso offline
 ├── manifest.json         # instalar na tela inicial
 ├── icons/                # ícones 192 px e 512 px

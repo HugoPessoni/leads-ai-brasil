@@ -3,13 +3,28 @@
   'use strict';
 
   var config = window.APP_CONFIG;
+  var Core = window.Core;
   var CHAVE_VOLUNTARIO = 'voluntario_v1';
 
-  // Fase 2: leitura simulada até a câmera entrar (fase 4).
-  var NOMES_FICTICIOS = ['Anderson Santos', 'Gabriel Monteiro', 'Saulo Souza', 'Jhonny Ribeiro'];
+  // Leitura simulada até a câmera entrar (fase 4): textos como vêm no QR do crachá.
+  var LEITURAS_FICTICIAS = [
+    'DOI-467956180/ANDERSON SANTOS',
+    'FD-0D26715492/GABRIEL MONTEIRO',
+    'DOI-ABC123/MARIA DA CONCEIÇÃO',
+    'DOI-467956180/ANDERSON SANTOS FD-0D26715492/GABRIEL MONTEIRO'
+  ];
+
+  // Campo do formulário de cadastro de cada nome usado por Core.validarCadastro.
+  var CAMPOS = {
+    nome: 'lead-nome',
+    celular: 'lead-celular',
+    email: 'lead-email',
+    autorizou: 'lead-autorizou'
+  };
 
   var estado = {
     voluntario: lerVoluntario(),
+    cracha: null, // resultado de Core.parseBadge da última leitura
     origemNome: 'manual',
     leadsHoje: 0, // fictício até a fila local entrar (fase 5)
     leiturasSimuladas: 0
@@ -91,7 +106,7 @@
 
   function confirmarVoluntario(evento) {
     evento.preventDefault();
-    var nome = $('voluntario-nome').value.trim();
+    var nome = Core.formatarNome($('voluntario-nome').value);
     if (!nome) {
       avisar('Digite seu nome para começar.');
       $('voluntario-nome').focus();
@@ -104,21 +119,60 @@
 
   /* ---------- Tela 2: cadastro ---------- */
 
+  // Recebe o texto lido do QR. Sem correspondência, o texto vai para o Nome e a origem fica manual.
+  function aplicarLeitura(texto) {
+    var cracha = Core.parseBadge(texto);
+    estado.cracha = cracha;
+    estado.origemNome = cracha ? 'qr' : 'manual';
+    $('lead-nome').value = cracha ? cracha.nome : texto.trim();
+    marcarInvalido('nome', false);
+  }
+
   function lerCracha() {
-    var nome = NOMES_FICTICIOS[estado.leiturasSimuladas % NOMES_FICTICIOS.length];
+    var texto = LEITURAS_FICTICIAS[estado.leiturasSimuladas % LEITURAS_FICTICIAS.length];
     estado.leiturasSimuladas++;
-    estado.origemNome = 'qr';
-    $('lead-nome').value = nome;
+    aplicarLeitura(texto);
     avisar('Leitura simulada. A câmera entra na fase 4.');
   }
 
   function digitarNome() {
+    estado.cracha = null;
     estado.origemNome = 'manual';
     $('lead-nome').focus();
   }
 
+  function mascararCelular() {
+    var campo = $('lead-celular');
+    campo.value = Core.formatarCelular(campo.value);
+  }
+
+  function marcarInvalido(campo, invalido) {
+    var elemento = $(CAMPOS[campo]);
+    var alvo = campo === 'autorizou' ? elemento.closest('.checkbox') : elemento;
+    if (invalido) alvo.setAttribute('aria-invalid', 'true');
+    else alvo.removeAttribute('aria-invalid');
+  }
+
   function continuarCadastro(evento) {
     evento.preventDefault();
+    var erros = Core.validarCadastro(
+      {
+        nome: $('lead-nome').value,
+        celular: $('lead-celular').value,
+        email: $('lead-email').value,
+        autorizou: $('lead-autorizou').checked
+      },
+      config.exigirAutorizacao
+    );
+
+    Object.keys(CAMPOS).forEach(function (campo) {
+      marcarInvalido(campo, erros.some(function (erro) { return erro.campo === campo; }));
+    });
+    if (erros.length) {
+      avisar(erros[0].mensagem);
+      return;
+    }
+
     document.activeElement.blur();
     mostrarTela('passo');
   }
@@ -126,6 +180,10 @@
   function limparCadastro() {
     $('form-cadastro').reset();
     $('lead-observacao').value = '';
+    Object.keys(CAMPOS).forEach(function (campo) {
+      marcarInvalido(campo, false);
+    });
+    estado.cracha = null;
     estado.origemNome = 'manual';
   }
 
@@ -174,7 +232,14 @@
     $('form-identificacao').addEventListener('submit', confirmarVoluntario);
     $('ler-cracha').addEventListener('click', lerCracha);
     $('digitar-nome').addEventListener('click', digitarNome);
+    $('lead-celular').addEventListener('input', mascararCelular);
     $('form-cadastro').addEventListener('submit', continuarCadastro);
+    // Corrigir um campo tira a marcação de erro dele.
+    Object.keys(CAMPOS).forEach(function (campo) {
+      $(CAMPOS[campo]).addEventListener('input', function () {
+        marcarInvalido(campo, false);
+      });
+    });
     $('voltar-cadastro').addEventListener('click', function () {
       mostrarTela('cadastro');
     });

@@ -1,0 +1,207 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Testes</title>
+  <style>
+    body { margin: 0; padding: 16px; background: #000; color: #fff; font: 15px/1.4 system-ui, sans-serif; }
+    h1 { margin: 0 0 12px; font-size: 20px; }
+    #resumo { padding: 12px 14px; border-radius: 10px; font-weight: 700; color: #000; }
+    .passou { background: #6bdd3e; }
+    .falhou { background: #ff6b6b; }
+    ul { padding: 0; list-style: none; }
+    li { padding: 8px 0; border-bottom: 1px solid #2e2e2e; }
+    li.erro { color: #ff8a8a; }
+    pre { margin: 4px 0 0; white-space: pre-wrap; font-size: 13px; color: #ccc; }
+  </style>
+</head>
+<body>
+  <h1>Testes das funções puras (js/core.js)</h1>
+  <div id="resumo">Rodando…</div>
+  <ul id="lista"></ul>
+
+  <script src="js/core.js"></script>
+  <script>
+    (function () {
+      'use strict';
+      var resultados = [];
+
+      function teste(nome, fn) {
+        try {
+          fn();
+          resultados.push({ nome: nome, ok: true });
+        } catch (erro) {
+          resultados.push({ nome: nome, ok: false, detalhe: erro.message });
+        }
+      }
+
+      function igual(atual, esperado) {
+        var a = JSON.stringify(atual);
+        var e = JSON.stringify(esperado);
+        if (a !== e) throw new Error('esperado ' + e + '\nrecebido ' + a);
+      }
+
+      function cracha(texto) {
+        var r = Core.parseBadge(texto);
+        return r && { prefixo: r.prefixo, id: r.id, codigo: r.codigo, nome: r.nome };
+      }
+
+      /* ---------- parseBadge: casos obrigatórios do PLANO.md ---------- */
+
+      teste('Tabela: DOI-467956180/ANDERSON SANTOS', function () {
+        igual(cracha('DOI-467956180/ANDERSON SANTOS'), { prefixo: 'DOI', id: '467956180', codigo: 'DOI-467956180', nome: 'Anderson Santos' });
+      });
+      teste('Tabela: FD-0D26715492/GABRIEL MONTEIRO', function () {
+        igual(cracha('FD-0D26715492/GABRIEL MONTEIRO'), { prefixo: 'FD', id: '0D26715492', codigo: 'FD-0D26715492', nome: 'Gabriel Monteiro' });
+      });
+      teste('Tabela: DOI-56FE55826/SAULO SOUZA', function () {
+        igual(cracha('DOI-56FE55826/SAULO SOUZA'), { prefixo: 'DOI', id: '56FE55826', codigo: 'DOI-56FE55826', nome: 'Saulo Souza' });
+      });
+      teste('Tabela: FD-0F79CE63CF/JHONNY RIBEIRO', function () {
+        igual(cracha('FD-0F79CE63CF/JHONNY RIBEIRO'), { prefixo: 'FD', id: '0F79CE63CF', codigo: 'FD-0F79CE63CF', nome: 'Jhonny Ribeiro' });
+      });
+      teste('Dois códigos no mesmo texto: usa o primeiro (Anderson Santos)', function () {
+        igual(cracha('DOI-467956180/ANDERSON SANTOS FD-0D26715492/GABRIEL MONTEIRO'), { prefixo: 'DOI', id: '467956180', codigo: 'DOI-467956180', nome: 'Anderson Santos' });
+      });
+      teste('Acento e partícula: DOI-ABC123/MARIA DA CONCEIÇÃO', function () {
+        igual(cracha('DOI-ABC123/MARIA DA CONCEIÇÃO'), { prefixo: 'DOI', id: 'ABC123', codigo: 'DOI-ABC123', nome: 'Maria da Conceição' });
+      });
+      teste('Espaços e quebra de linha nas pontas', function () {
+        igual(cracha('  \n DOI-467956180/ANDERSON SANTOS \r\n  '), { prefixo: 'DOI', id: '467956180', codigo: 'DOI-467956180', nome: 'Anderson Santos' });
+      });
+      teste('Texto sem barra retorna null', function () {
+        igual(Core.parseBadge('DOI-467956180 ANDERSON SANTOS'), null);
+      });
+      teste('Texto vazio retorna null', function () {
+        igual(Core.parseBadge(''), null);
+        igual(Core.parseBadge('   '), null);
+      });
+      teste('URL qualquer retorna null', function () {
+        igual(Core.parseBadge('https://www.google.com/search?q=cracha'), null);
+      });
+
+      /* ---------- parseBadge: retorno completo ---------- */
+
+      teste('Retorna nomeOriginal e bruto', function () {
+        var r = Core.parseBadge(' DOI-467956180/ANDERSON SANTOS ');
+        igual(r.nomeOriginal, 'ANDERSON SANTOS');
+        igual(r.bruto, ' DOI-467956180/ANDERSON SANTOS ');
+      });
+      teste('Minúsculas no QR viram código em maiúsculas', function () {
+        igual(cracha('doi-56fe55826/saulo souza'), { prefixo: 'DOI', id: '56FE55826', codigo: 'DOI-56FE55826', nome: 'Saulo Souza' });
+      });
+      teste('Entrada que não é texto retorna null', function () {
+        igual(Core.parseBadge(null), null);
+        igual(Core.parseBadge(undefined), null);
+      });
+
+      /* ---------- formatarNome ---------- */
+
+      teste('Nome em formato título com partículas', function () {
+        igual(Core.formatarNome('JOÃO DOS SANTOS E SILVA'), 'João dos Santos e Silva');
+      });
+      teste('Primeira palavra sempre maiúscula, mesmo partícula', function () {
+        igual(Core.formatarNome('da silva'), 'Da Silva');
+      });
+      teste('Hífen, apóstrofo e espaços extras', function () {
+        igual(Core.formatarNome("  ana-maria   D'ÁVILA "), "Ana-Maria D'Ávila");
+      });
+
+      /* ---------- Celular ---------- */
+
+      teste('Máscara de celular completo', function () {
+        igual(Core.formatarCelular('11987654321'), '(11) 98765-4321');
+      });
+      teste('Máscara de fixo', function () {
+        igual(Core.formatarCelular('1134567890'), '(11) 3456-7890');
+      });
+      teste('Máscara enquanto digita', function () {
+        igual(Core.formatarCelular('1'), '(1');
+        igual(Core.formatarCelular('11'), '(11');
+        igual(Core.formatarCelular('119'), '(11) 9');
+        igual(Core.formatarCelular('1198765'), '(11) 9876-5');
+        igual(Core.formatarCelular(''), '');
+      });
+      teste('Máscara remove +55, letras e excesso', function () {
+        igual(Core.formatarCelular('+55 (11) 98765-4321'), '(11) 98765-4321');
+        igual(Core.formatarCelular('11a98765b4321999'), '(11) 98765-4321');
+      });
+      teste('Celular válido e inválido', function () {
+        igual(Core.celularValido('(11) 98765-4321'), true);
+        igual(Core.celularValido('(11) 3456-7890'), true);
+        igual(Core.celularValido('(11) 9876-543'), false);
+        igual(Core.celularValido('(01) 98765-4321'), false);
+        igual(Core.celularValido('(11) 18765-4321'), false);
+        igual(Core.celularValido(''), false);
+      });
+
+      /* ---------- E-mail ---------- */
+
+      teste('E-mail válido e inválido', function () {
+        igual(Core.emailValido('anderson@acme.com'), true);
+        igual(Core.emailValido(' ana@empresa.com.br '), true);
+        igual(Core.emailValido('anderson@acme'), false);
+        igual(Core.emailValido('anderson acme.com'), false);
+        igual(Core.emailValido(''), false);
+      });
+
+      /* ---------- validarCadastro ---------- */
+
+      function campos(extra) {
+        var base = { nome: 'Anderson Santos', celular: '(11) 98765-4321', email: 'anderson@acme.com', autorizou: true };
+        for (var k in extra) base[k] = extra[k];
+        return base;
+      }
+      function camposComErro(erros) {
+        return erros.map(function (e) { return e.campo; });
+      }
+
+      teste('Cadastro completo não tem erros', function () {
+        igual(Core.validarCadastro(campos({}), true), []);
+      });
+      teste('Só celular ou só e-mail é aceito', function () {
+        igual(Core.validarCadastro(campos({ email: '' }), true), []);
+        igual(Core.validarCadastro(campos({ celular: '' }), true), []);
+      });
+      teste('Sem celular e sem e-mail não deixa salvar', function () {
+        igual(camposComErro(Core.validarCadastro(campos({ celular: '', email: '  ' }), true)), ['celular', 'email']);
+      });
+      teste('Celular ou e-mail inválido', function () {
+        igual(camposComErro(Core.validarCadastro(campos({ celular: '(11) 9876' }), true)), ['celular']);
+        igual(camposComErro(Core.validarCadastro(campos({ email: 'anderson@' }), true)), ['email']);
+      });
+      teste('Autorização obrigatória quando exigida', function () {
+        igual(camposComErro(Core.validarCadastro(campos({ autorizou: false }), true)), ['autorizou']);
+        igual(Core.validarCadastro(campos({ autorizou: false }), false), []);
+      });
+      teste('Nome vazio', function () {
+        igual(camposComErro(Core.validarCadastro(campos({ nome: '  ' }), true)), ['nome']);
+      });
+
+      /* ---------- Resultado ---------- */
+
+      var falhas = resultados.filter(function (r) { return !r.ok; }).length;
+      var resumo = document.getElementById('resumo');
+      resumo.textContent = falhas
+        ? falhas + ' de ' + resultados.length + ' testes falharam'
+        : 'Todos os ' + resultados.length + ' testes passaram';
+      resumo.className = falhas ? 'falhou' : 'passou';
+      document.title = (falhas ? '✘ ' : '✔ ') + resumo.textContent;
+
+      var lista = document.getElementById('lista');
+      resultados.forEach(function (r) {
+        var item = document.createElement('li');
+        item.className = r.ok ? '' : 'erro';
+        item.textContent = (r.ok ? '✔ ' : '✘ ') + r.nome;
+        if (!r.ok) {
+          var pre = document.createElement('pre');
+          pre.textContent = r.detalhe;
+          item.appendChild(pre);
+        }
+        lista.appendChild(item);
+      });
+    })();
+  </script>
+</body>
+</html>

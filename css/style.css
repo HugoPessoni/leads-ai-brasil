@@ -1,19 +1,41 @@
+/* Identidade visual: AI.Brasil Experience 2026 (fundo preto, verde e amarelo-lima). */
+
+@font-face {
+  font-family: "Rajdhani";
+  font-weight: 300;
+  font-display: swap;
+  src: url("../fonts/rajdhani-300.woff2") format("woff2");
+}
+
+@font-face {
+  font-family: "Rajdhani";
+  font-weight: 700;
+  font-display: swap;
+  src: url("../fonts/rajdhani-700.woff2") format("woff2");
+}
+
+@font-face {
+  font-family: "Montserrat";
+  font-weight: 500 700;
+  font-display: swap;
+  src: url("../fonts/montserrat.woff2") format("woff2");
+}
+
 :root {
-  --fundo: #f4f5f7;
-  --superficie: #ffffff;
-  --texto: #14171c;
-  --texto-suave: #5d6573;
-  --borda: #d0d5dd;
-  --principal: #14171c;
-  --principal-texto: #ffffff;
-  --link: #0b57d0;
-  --foco: #1f6feb;
-  --enviado: #1a7f37;
-  --pendente: #9a6700;
-  --raio: 12px;
-  --altura-barra: 56px;
+  --preto: #000000;
+  --verde: #6bdd3e;
+  --lima: #e4ef3a;
+  --branco: #ffffff;
+  --cinza: #a3a3a3;
+  --linha: #2e2e2e;
+  --campo: #111111;
+  --erro: #ff6b6b;
+  --raio: 14px;
+  --altura-barra: 60px;
   --topo: calc(var(--altura-barra) + env(safe-area-inset-top));
-  color-scheme: light;
+  --fonte-titulo: "Rajdhani", "Arial Narrow", system-ui, sans-serif;
+  --fonte-texto: "Montserrat", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  color-scheme: dark;
 }
 
 * {
@@ -27,11 +49,27 @@ html {
 body {
   margin: 0;
   min-height: 100vh;
-  font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
-  font-size: 17px;
+  overflow-x: hidden;
+  font-family: var(--fonte-texto);
+  font-size: 16px;
+  font-weight: 500;
   line-height: 1.4;
-  background: var(--fundo);
-  color: var(--texto);
+  background: var(--preto);
+  color: var(--branco);
+}
+
+/* Arco verde do pôster, só decorativo. */
+body::before {
+  content: "";
+  position: fixed;
+  top: 18vh;
+  right: -230px;
+  width: 340px;
+  height: 340px;
+  border: 1.5px solid var(--verde);
+  border-radius: 50%;
+  opacity: 0.55;
+  pointer-events: none;
 }
 
 [hidden] {
@@ -50,10 +88,43 @@ button {
   -webkit-tap-highlight-color: transparent;
 }
 
+/* Título no estilo do pôster: parte fina em branco e parte em destaque. */
 h1 {
   margin: 0;
-  font-size: 24px;
-  line-height: 1.25;
+  font-family: var(--fonte-titulo);
+  font-size: 34px;
+  font-weight: 700;
+  line-height: 1;
+  text-transform: uppercase;
+}
+
+h1 .fino {
+  display: block;
+  font-weight: 300;
+}
+
+h1 .destaque {
+  display: block;
+  color: var(--verde);
+}
+
+.logo {
+  display: block;
+  width: 168px;
+  height: auto;
+}
+
+.selo {
+  align-self: flex-start;
+  padding: 8px 16px;
+  border: 1.5px solid var(--verde);
+  border-radius: 999px;
+  font-family: var(--fonte-titulo);
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--verde);
 }
 
 /* ---------- Barra fixa ---------- */
@@ -67,8 +138,8 @@ h1 {
   gap: 4px;
   height: var(--topo);
   padding: env(safe-area-inset-top) 4px 0 16px;
-  background: var(--superficie);
-  border-bottom: 1px solid var(--borda);
+  background: var(--preto);
+  border-bottom: 1px solid var(--linha);
 }
 
 .barra-voluntario {
@@ -76,32 +147,35 @@ h1 {
   flex: 1;
   flex-direction: column;
   min-width: 0;
-  line-height: 1.2;
+  line-height: 1.15;
 }
 
 .barra-nome {
   overflow: hidden;
+  font-family: var(--fonte-titulo);
+  font-size: 19px;
   font-weight: 700;
   white-space: nowrap;
   text-overflow: ellipsis;
+  text-transform: uppercase;
 }
 
 .barra-hoje {
-  font-size: 14px;
-  color: var(--texto-suave);
+  font-size: 13px;
+  color: var(--cinza);
 }
 
 .barra-status {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 7px;
   min-height: 48px;
   padding: 0 10px;
   border: 0;
   background: transparent;
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 700;
-  color: var(--enviado);
+  color: var(--verde);
   white-space: nowrap;
 }
 
@@ -114,7 +188,7 @@ h1 {
 }
 
 .barra-status.pendente {
-  color: var(--pendente);
+  color: var(--lima);
 }
 
 .botao-menu {
@@ -127,24 +201,24 @@ h1 {
 
 .menu {
   position: fixed;
-  top: calc(var(--topo) + 4px);
+  top: calc(var(--topo) + 6px);
   right: 8px;
   z-index: 11;
   display: flex;
   flex-direction: column;
-  min-width: 230px;
+  min-width: 240px;
   overflow: hidden;
-  background: var(--superficie);
-  border: 1px solid var(--borda);
+  background: var(--campo);
+  border: 1px solid var(--linha);
   border-radius: var(--raio);
-  box-shadow: 0 10px 30px rgb(0 0 0 / 0.15);
+  box-shadow: 0 12px 32px rgb(0 0 0 / 0.6);
 }
 
 .menu button {
-  min-height: 52px;
+  min-height: 54px;
   padding: 0 18px;
   border: 0;
-  border-bottom: 1px solid var(--borda);
+  border-bottom: 1px solid var(--linha);
   background: transparent;
   text-align: left;
 }
@@ -154,15 +228,16 @@ h1 {
 }
 
 .menu button:active {
-  background: var(--fundo);
+  background: var(--linha);
 }
 
 /* ---------- Telas ---------- */
 
 main {
+  position: relative;
   max-width: 520px;
   margin: 0 auto;
-  padding: calc(var(--topo) + 20px) 16px calc(24px + env(safe-area-inset-bottom));
+  padding: calc(var(--topo) + 20px) 16px calc(28px + env(safe-area-inset-bottom));
 }
 
 .tela,
@@ -172,14 +247,6 @@ main {
   gap: 16px;
 }
 
-.evento {
-  margin: 0;
-  font-weight: 700;
-  color: var(--texto-suave);
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-}
-
 .campo {
   display: flex;
   flex-direction: column;
@@ -187,41 +254,51 @@ main {
 }
 
 .campo label {
-  font-size: 15px;
+  font-size: 14px;
   font-weight: 700;
 }
 
 .opcional {
-  font-weight: 400;
-  color: var(--texto-suave);
+  font-weight: 500;
+  color: var(--cinza);
 }
 
 /* 18px evita o zoom automático do Safari ao tocar no campo. */
 .campo input {
   width: 100%;
-  min-height: 52px;
-  padding: 0 14px;
-  border: 1px solid var(--borda);
+  min-height: 54px;
+  padding: 0 16px;
+  border: 1px solid var(--linha);
   border-radius: var(--raio);
-  background: var(--superficie);
+  background: var(--campo);
   font-size: 18px;
+}
+
+.campo input::placeholder {
+  color: #6b6b6b;
 }
 
 .campo input:focus,
 .checkbox:focus-within {
-  border-color: var(--foco);
-  outline: 3px solid rgb(31 111 235 / 0.3);
+  border-color: var(--verde);
+  outline: 2px solid rgb(107 221 62 / 0.35);
+}
+
+.campo input[aria-invalid="true"],
+.checkbox[aria-invalid="true"] {
+  border-color: var(--erro);
+  outline: 2px solid rgb(255 107 107 / 0.3);
 }
 
 .checkbox {
   display: flex;
   align-items: center;
   gap: 12px;
-  min-height: 56px;
-  padding: 0 14px;
-  border: 1px solid var(--borda);
+  min-height: 58px;
+  padding: 0 16px;
+  border: 1px solid var(--linha);
   border-radius: var(--raio);
-  background: var(--superficie);
+  background: var(--campo);
   font-weight: 700;
 }
 
@@ -229,16 +306,19 @@ main {
   width: 26px;
   height: 26px;
   margin: 0;
-  accent-color: var(--principal);
+  accent-color: var(--verde);
 }
 
 .botao {
-  min-height: 56px;
-  padding: 0 20px;
+  min-height: 58px;
+  padding: 0 24px;
   border: 0;
-  border-radius: var(--raio);
-  font-size: 18px;
+  border-radius: 999px;
+  font-family: var(--fonte-titulo);
+  font-size: 22px;
   font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
 }
 
 .botao:active {
@@ -246,13 +326,13 @@ main {
 }
 
 .botao-principal {
-  background: var(--principal);
-  color: var(--principal-texto);
+  background: var(--verde);
+  color: var(--preto);
 }
 
 .botao-grande {
-  min-height: 72px;
-  font-size: 20px;
+  min-height: 74px;
+  font-size: 26px;
 }
 
 .link {
@@ -262,8 +342,9 @@ main {
   border: 0;
   background: transparent;
   font-weight: 700;
-  color: var(--link);
+  color: var(--lima);
   text-decoration: underline;
+  text-underline-offset: 4px;
 }
 
 .botoes-passo {
@@ -272,10 +353,12 @@ main {
   gap: 14px;
 }
 
+/* A cor de fundo vem do config.js; use cores claras, o texto é preto. */
 .botao-passo {
-  min-height: 96px;
-  color: #ffffff;
-  font-size: 22px;
+  min-height: 100px;
+  color: var(--preto);
+  font-size: 26px;
+  line-height: 1.1;
 }
 
 .tela-qr {
@@ -283,13 +366,21 @@ main {
   text-align: center;
 }
 
+.tela-qr h1 {
+  font-size: 30px;
+}
+
+.tela-qr .logo {
+  width: 140px;
+}
+
 .qr-imagem {
   display: block;
-  width: min(84vw, 56vh, 440px);
+  width: min(84vw, 52vh, 440px);
   aspect-ratio: 1;
-  padding: 12px;
-  border-radius: var(--raio);
-  background: #ffffff;
+  padding: 14px;
+  border-radius: 20px;
+  background: var(--branco);
   object-fit: contain;
 }
 
@@ -310,9 +401,11 @@ main {
   max-width: 488px;
   margin: 0 auto;
   padding: 14px 16px;
+  border: 1.5px solid var(--lima);
   border-radius: var(--raio);
-  background: var(--texto);
-  color: #ffffff;
+  background: #141414;
+  color: var(--branco);
+  font-weight: 700;
   text-align: center;
-  box-shadow: 0 10px 30px rgb(0 0 0 / 0.25);
+  box-shadow: 0 12px 32px rgb(0 0 0 / 0.7);
 }
