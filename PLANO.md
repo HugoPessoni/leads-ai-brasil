@@ -277,19 +277,21 @@ Dez fases, cada uma testável no celular; o Claude Code para ao fim de cada uma 
 
 Rode tudo nos celulares que os voluntários vão usar, com crachás reais do evento.
 
-- [ ] iPhone (Safari) e Android (Chrome): a câmera abre e lê crachá impresso
+- [x] iPhone (Safari) e Android (Chrome): a câmera abre e lê crachá impresso (fase 4)
 - [ ] Leitura com pouca luz e com o crachá inclinado
 - [ ] QR ilegível: "Digitar nome" funciona e grava origem Manual
 - [ ] Modo avião: cadastrar 3 leads, voltar a internet e conferir as 3 linhas na planilha
 - [ ] Fechar o navegador com leads pendentes, reabrir: continuam lá e são enviados
 - [ ] Mesmo crachá duas vezes: aparece o aviso de duplicado
-- [ ] Sem celular e sem e-mail: o app não deixa salvar
+- [x] Sem celular e sem e-mail: o app não deixa salvar (fase 3; só celular, só e-mail ou os dois seguem)
 - [ ] QR de reunião abre a agenda; QR de contato abre o link certo
-- [ ] Dois voluntários enviando ao mesmo tempo: nenhuma linha perdida
-- [ ] Dashboard confere com a contagem manual
-- [ ] Exportar backup no celular e importar na planilha sem duplicar
+- [x] Dois voluntários enviando ao mesmo tempo: nenhuma linha perdida (3 envios simultâneos de 10 leads na planilha real: 30 gravados; reenvio: 30 ignorados)
+- [x] Dashboard confere com a contagem manual (fase 8, com 20 leads fictícios)
+- [x] Exportar backup no celular e importar na planilha sem duplicar (fase 9)
 - [ ] Uso contínuo por uma sessão longa: checar bateria e levar carregadores portáteis
 - [ ] App instalado na tela inicial de cada voluntário antes do evento (no iPhone, usar só o ícone instalado: ele não enxerga os dados do Safari)
+- [ ] Imagens reais dos QRs de reunião e de contato no lugar dos mockups (`img/`)
+- [ ] Antes do evento: apagar as linhas de teste da aba Leads e zerar o app nos celulares usados em testes
 
 ## Pendências para preencher antes de começar
 
