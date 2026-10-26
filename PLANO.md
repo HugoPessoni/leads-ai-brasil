@@ -278,11 +278,11 @@ Dez fases, cada uma testável no celular; o Claude Code para ao fim de cada uma 
 Rode tudo nos celulares que os voluntários vão usar, com crachás reais do evento.
 
 - [x] iPhone (Safari) e Android (Chrome): a câmera abre e lê crachá impresso (fase 4)
-- [ ] Leitura com pouca luz e com o crachá inclinado
-- [ ] QR ilegível: "Digitar nome" funciona e grava origem Manual
-- [ ] Modo avião: cadastrar 3 leads, voltar a internet e conferir as 3 linhas na planilha
-- [ ] Fechar o navegador com leads pendentes, reabrir: continuam lá e são enviados
-- [ ] Mesmo crachá duas vezes: aparece o aviso de duplicado
+- [x] Leitura com pouca luz e com o crachá inclinado (ensaio geral)
+- [x] QR ilegível: "Digitar nome" funciona e grava origem Manual (ensaio geral)
+- [x] Modo avião: cadastrar 3 leads, voltar a internet e conferir as 3 linhas na planilha (ensaio geral: 4 leads em 2 celulares)
+- [x] Fechar o navegador com leads pendentes, reabrir: continuam lá e são enviados (ensaio geral)
+- [x] Mesmo crachá duas vezes: aparece o aviso de duplicado (ensaio geral)
 - [x] Sem celular e sem e-mail: o app não deixa salvar (fase 3; só celular, só e-mail ou os dois seguem)
 - [ ] QR de reunião abre a agenda; QR de contato abre o link certo
 - [x] Dois voluntários enviando ao mesmo tempo: nenhuma linha perdida (3 envios simultâneos de 10 leads na planilha real: 30 gravados; reenvio: 30 ignorados)
