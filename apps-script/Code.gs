@@ -59,8 +59,11 @@ function setup() {
     leads.setFrozenRows(1);
   }
 
-  // Fórmulas e gráficos do Dashboard entram na fase 8.
-  obterOuCriarAba_(ss, ABA_DASHBOARD);
+  // Dashboard só tem fórmulas e gráficos: monta se estiver vazio (para refazer: menu Leads > Recriar Dashboard).
+  var dashboard = obterOuCriarAba_(ss, ABA_DASHBOARD);
+  if (dashboard.getLastRow() === 0 && dashboard.getCharts().length === 0) {
+    montarDashboard_(dashboard);
+  }
 
   var config = obterOuCriarAba_(ss, ABA_CONFIG);
   if (config.getLastRow() === 0) {
@@ -130,9 +133,190 @@ function importarBackup() {
   SpreadsheetApp.getUi().alert('A importação de backup ainda não foi implementada (fase 9).');
 }
 
-// Implementado na fase 8.
 function recriarDashboard() {
-  SpreadsheetApp.getUi().alert('O Dashboard ainda não foi implementado (fase 8).');
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  montarDashboard_(obterOuCriarAba_(ss, ABA_DASHBOARD));
+  SpreadsheetApp.getUi().alert('Dashboard recriado.');
+}
+
+/* ---------- Dashboard ---------- */
+
+var VERDE = '#6BDD3E';
+var LIMA = '#E4EF3A';
+var CINZA_CABECALHO = '#EFEFEF';
+var LINHAS_RESERVADAS = 200; // tamanho das áreas lidas pelos gráficos
+
+/**
+ * Apaga e monta a aba Dashboard: KPIs com fórmulas (atualizam sozinhas) e três gráficos.
+ * Fórmulas com nomes em inglês e vírgula como separador, como o Apps Script exige.
+ */
+function montarDashboard_(aba) {
+  aba.getCharts().forEach(function (grafico) {
+    aba.removeChart(grafico);
+  });
+  aba.clear();
+
+  aba.getRange('A1').setValue('Dashboard de leads').setFontSize(16).setFontWeight('bold');
+  aba.getRange('A2')
+    .setValue('Atualiza sozinho a cada lead que chega. Para refazer: menu Leads > Recriar Dashboard.')
+    .setFontColor('#666666');
+
+  // Resumo
+  aba.getRange('A4:A5').setValues([['Total de leads'], ['Último lead recebido']]).setFontWeight('bold');
+  aba.getRange('B4').setFormula(f_('=COUNTA({id})'));
+  aba.getRange('B5').setFormula(f_('=IF(B4=0,"—",MAX({recebido_em}))')).setNumberFormat('dd/mm/yyyy hh:mm:ss');
+
+  tabelaDeContagem_(aba, 7, 'Próximo passo', [
+    ['Reunião', '=COUNTIF({proximo_passo},"Reunião")'],
+    ['Contato', '=COUNTIF({proximo_passo},"Contato")']
+  ]);
+  tabelaDeContagem_(aba, 11, 'Qualidade do contato', [
+    ['Com celular', '=COUNTA({celular})'],
+    ['Com e-mail', '=COUNTA({email})'],
+    ['Com os dois', '=COUNTIFS({celular},"<>",{email},"<>")']
+  ]);
+  tabelaDeContagem_(aba, 16, 'Leitura do crachá', [
+    ['QR', '=COUNTIF({origem_nome},"QR")'],
+    ['Manual', '=COUNTIF({origem_nome},"Manual")']
+  ]);
+
+  // Tipo de crachá (DOI, FD...) cruzado com o próximo passo. Lead digitado não tem tipo: "Sem crachá".
+  titulo_(aba, 'A20', 'Tipo de crachá × próximo passo');
+  aba.getRange('A21').setFormula(f_(
+    '=IFERROR(QUERY({ARRAYFORMULA(IF({cracha_tipo}="","Sem crachá",{cracha_tipo})),{proximo_passo},{id}},' +
+    '"select Col1, count(Col3) where Col3 is not null group by Col1 pivot Col2 label Col1 \'Tipo de crachá\'",0),' +
+    '"Sem leads ainda")'
+  ));
+
+  // Crachás cadastrados mais de uma vez (no mesmo celular ou em celulares diferentes).
+  titulo_(aba, 'A27', 'Crachás com mais de um cadastro');
+  var porCracha = 'QUERY({todas},"select [cracha_codigo], count([id]) where [cracha_codigo] is not null ' +
+    'group by [cracha_codigo] label count([id]) \'\'",0)';
+  aba.getRange('B27').setFormula(f_('=IFERROR(ROWS(QUERY(' + porCracha + ',"select Col1 where Col2 > 1",0)),0)'));
+  aba.getRange('A28').setFormula(f_('=IFERROR(QUERY(' + porCracha + ',"select Col1, Col2 where Col2 > 1 order by Col2 desc ' +
+    'label Col1 \'Crachá\', Col2 \'Cadastros\'",0),"Nenhum")'));
+
+  // Ranking de voluntários, do maior total para o menor.
+  titulo_(aba, 'E4', 'Ranking de voluntários');
+  cabecalho_(aba.getRange('E5:I5').setValues([['Voluntário', 'Reunião', 'Contato', 'Total', '% reunião']]));
+  aba.getRange('E6').setFormula(f_(
+    '=IFERROR(SORT(LET(v,UNIQUE(FILTER({voluntario},{id}<>"")),' +
+    'r,ARRAYFORMULA(COUNTIFS({voluntario},v,{proximo_passo},"Reunião")),' +
+    'c,ARRAYFORMULA(COUNTIFS({voluntario},v,{proximo_passo},"Contato")),' +
+    't,ARRAYFORMULA(COUNTIFS({voluntario},v,{id},"<>")),' +
+    '{v,r,c,t,ARRAYFORMULA(r/t)}),4,FALSE,1,TRUE),"Sem leads ainda")'
+  ));
+  aba.getRange(6, 9, LINHAS_RESERVADAS, 1).setNumberFormat('0%');
+
+  // Leads por dia e por hora (horário do celular, não da chegada).
+  titulo_(aba, 'K4', 'Leads por dia');
+  aba.getRange('K5').setFormula(f_(
+    '=IFERROR(QUERY({todas},"select [data], count([id]) where [id] is not null group by [data] order by [data] ' +
+    'label [data] \'Dia\', count([id]) \'Leads\'",0),"Sem leads ainda")'
+  ));
+  aba.getRange(6, 11, LINHAS_RESERVADAS, 1).setNumberFormat('dd/mm/yyyy');
+
+  titulo_(aba, 'N4', 'Leads por hora');
+  aba.getRange('N5').setFormula(f_(
+    '=IFERROR(QUERY({ARRAYFORMULA(IF({id}="","",TEXT({data},"dd/mm")&" "&TEXT({hora},"00")&"h")),{id}},' +
+    '"select Col1, count(Col2) where Col2 is not null group by Col1 order by Col1 ' +
+    'label Col1 \'Dia e hora\', count(Col2) \'Leads\'",0),"Sem leads ainda")'
+  ));
+
+  [[1, 230], [2, 150], [3, 70], [5, 170], [6, 80], [7, 80], [8, 70], [9, 90], [11, 110], [12, 70], [14, 120], [15, 70]]
+    .forEach(function (par) {
+      aba.setColumnWidth(par[0], par[1]);
+    });
+
+  inserirGraficos_(aba);
+
+  var ss = aba.getParent();
+  ss.setActiveSheet(aba);
+  ss.moveActiveSheet(1);
+}
+
+// Cabeçalho [título, Leads, %] e uma linha por item: [rótulo, fórmula da contagem]. % sobre o total (B4).
+function tabelaDeContagem_(aba, linha, titulo, itens) {
+  cabecalho_(aba.getRange(linha, 1, 1, 3).setValues([[titulo, 'Leads', '%']]));
+  itens.forEach(function (item, i) {
+    var l = linha + 1 + i;
+    aba.getRange(l, 1).setValue(item[0]);
+    aba.getRange(l, 2).setFormula(f_(item[1]));
+    aba.getRange(l, 3).setFormula('=IF($B$4=0,0,B' + l + '/$B$4)').setNumberFormat('0%');
+  });
+}
+
+function titulo_(aba, celula, texto) {
+  aba.getRange(celula).setValue(texto).setFontWeight('bold').setFontSize(12);
+}
+
+function cabecalho_(intervalo) {
+  return intervalo.setFontWeight('bold').setBackground(CINZA_CABECALHO);
+}
+
+function inserirGraficos_(aba) {
+  // Mesmas cores dos botões do app: reunião verde, contato amarelo-lima.
+  aba.insertChart(aba.newChart()
+    .setChartType(Charts.ChartType.PIE)
+    .addRange(aba.getRange('A8:B9'))
+    .setPosition(4, 17, 0, 0)
+    .setOption('title', 'Reunião × Contato')
+    .setOption('colors', [VERDE, LIMA])
+    .build());
+
+  aba.insertChart(aba.newChart()
+    .setChartType(Charts.ChartType.BAR)
+    .addRange(aba.getRange(5, 5, LINHAS_RESERVADAS + 1, 3)) // Voluntário, Reunião, Contato
+    .setNumHeaders(1)
+    .setPosition(22, 17, 0, 0)
+    .setOption('title', 'Ranking de voluntários')
+    .setOption('isStacked', true)
+    .setOption('colors', [VERDE, LIMA])
+    .build());
+
+  aba.insertChart(aba.newChart()
+    .setChartType(Charts.ChartType.COLUMN)
+    .addRange(aba.getRange(5, 14, LINHAS_RESERVADAS + 1, 2)) // Dia e hora, Leads
+    .setNumHeaders(1)
+    .setPosition(40, 17, 0, 0)
+    .setOption('title', 'Leads por hora')
+    .setOption('legend', { position: 'none' })
+    .setOption('colors', [VERDE])
+    .build());
+}
+
+/**
+ * Troca os nomes das colunas pela posição real na aba Leads (constante COLUNAS):
+ * {campo} vira o intervalo "Leads!X2:X", [campo] vira a letra "X" (para o texto da QUERY)
+ * e {todas} vira "Leads!A2:Q". Nome errado interrompe o setup, em vez de gerar fórmula quebrada.
+ */
+function f_(modelo) {
+  var ultima = letraDaColuna_(COLUNAS.length);
+  return modelo
+    .replace(/\{todas\}/g, ABA_LEADS + '!A2:' + ultima)
+    .replace(/\{(\w+)\}/g, function (_, nome) {
+      var letra = letraDe_(nome);
+      return ABA_LEADS + '!' + letra + '2:' + letra;
+    })
+    .replace(/\[(\w+)\]/g, function (_, nome) {
+      return letraDe_(nome);
+    });
+}
+
+function letraDe_(nome) {
+  var posicao = colunaDe_(nome);
+  if (!posicao) throw new Error('Coluna desconhecida no Dashboard: ' + nome);
+  return letraDaColuna_(posicao);
+}
+
+function letraDaColuna_(numero) {
+  var letras = '';
+  while (numero > 0) {
+    var resto = (numero - 1) % 26;
+    letras = String.fromCharCode(65 + resto) + letras;
+    numero = Math.floor((numero - 1) / 26);
+  }
+  return letras;
 }
 
 /* ---------- Gravação ---------- */
