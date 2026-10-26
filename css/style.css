@@ -418,10 +418,27 @@ main {
 
 /* A cor de fundo vem do config.js; use cores claras, o texto é preto. */
 .botao-passo {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
   min-height: 100px;
+  padding-top: 12px;
+  padding-bottom: 12px;
   color: var(--preto);
   font-size: 26px;
   line-height: 1.1;
+}
+
+/* Etiqueta dentro do botão (ex.: "BOT 🤖" no contato, que leva a um chatbot). */
+.selo-passo {
+  padding: 5px 14px;
+  border-radius: 999px;
+  background: var(--preto);
+  color: var(--branco);
+  font-size: 17px;
+  letter-spacing: 0.12em;
 }
 
 .tela-qr {
@@ -494,6 +511,34 @@ main {
   border: 1.5px solid var(--branco);
   background: transparent;
   color: var(--branco);
+}
+
+/* ---------- Dica de instalação (iPhone) ---------- */
+
+.dica-instalar {
+  margin-bottom: 20px;
+  padding: 14px 16px 6px;
+  border: 1.5px solid var(--lima);
+  border-radius: var(--raio);
+  background: var(--campo);
+  font-size: 15px;
+}
+
+.dica-instalar p {
+  margin: 0 0 8px;
+}
+
+.dica-instalar ol {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 0;
+  padding-left: 20px;
+}
+
+.dica-instalar .link {
+  display: block;
+  margin: 4px auto 0;
 }
 
 /* ---------- Leitor do QR ---------- */

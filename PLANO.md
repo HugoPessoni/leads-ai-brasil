@@ -116,6 +116,7 @@ Uma página com quatro telas; depois do primeiro uso, o voluntário só passa pe
    - "Marcar uma reunião" grava `proximo_passo = reuniao`.
    - "Receber nosso contato" grava `proximo_passo = contato`.
    - Cada botão tem uma cor fixa, para o voluntário reconhecer pelo treinamento; o texto é neutro para quem está olhando a tela.
+   - "Receber nosso contato" leva o selo "BOT 🤖" (campo `selo` no `config.js`), lembrando que o QR de contato abre um chatbot.
    - Antes dos botões, a temperatura do lead, obrigatória: três ícones (🔥 quente, 💨 morno, ❄️ frio), sem texto, porque a pessoa abordada pode ver a tela. Ícones e nomes ficam no `config.js`.
    - Ao tocar no botão, o lead é salvo no celular na hora, sem travar a tela.
 4. **QR para a empresa:** tela cheia com a imagem do QR do passo escolhido (agendamento ou contato), um título curto vindo do `config.js` e o botão "Novo lead", que volta ao cadastro com os campos limpos.
@@ -140,6 +141,7 @@ Todo lead é gravado no celular antes de qualquer envio; a planilha recebe uma c
   - Os arquivos vêm do cache primeiro (abre na hora, mesmo com sinal fraco). Ao publicar mudança de código, aumentar `VERSAO` no `sw.js`; o celular baixa a versão nova numa abertura e passa a usá-la na seguinte.
   - O `sw.js` importa o `config.js` (por isso ele usa `self.APP_CONFIG`) para guardar as imagens dos QRs; mudar só o `config.js` já atualiza o app.
   - No iPhone, o app instalado na tela inicial guarda os dados separados do Safari: instalar antes do evento e usar só o ícone instalado.
+  - No iPhone, aberto no navegador e ainda não instalado, o app mostra no topo o passo a passo de instalação (Safari > Compartilhar > Adicionar à Tela de Início). No Android e no app instalado, a dica não aparece.
 - **Exportar backup (plano B):** gera um texto com todos os leads deste celular, no formato `LEADS1:` seguido do JSON em Base64 (codificado em UTF-8 para preservar acentos). Abre o compartilhamento nativo do celular (`navigator.share`) ou copia para a área de transferência, para mandar por WhatsApp ou e-mail. A planilha importa esse texto pelo menu "Leads > Importar backup", sem duplicar.
   - O texto vai dentro de um arquivo `backup-leads-<voluntario>-<data>.txt`, porque o WhatsApp corta mensagens de texto longas. Sem compartilhamento de arquivo, o app copia o texto.
   - A caixa "Importar backup" aceita escolher o arquivo .txt ou colar o texto (quebras de linha no meio são ignoradas) e mostra quantos leads entraram e quantos já estavam na planilha.

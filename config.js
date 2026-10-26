@@ -5,7 +5,7 @@ self.APP_CONFIG = {
   evento: 'AI.Brasil Experience 2026',
   apiUrl: 'https://script.google.com/macros/s/AKfycbyVBTiPH3WOYrvr_xXkuPhZBPahf3luQwg_Ztqt6tm-s8LL-BS6hEsYppN94GVGLRMU/exec',
   token: '6da5e61d893b47d1b299cc97c7b6d02f4ce772050ed54117a24a5b42bc0134e4',
-  // Cores claras: o texto dos botões é preto.
+  // Cores claras: o texto dos botões é preto. "selo" (opcional) aparece como etiqueta dentro do botão.
   proximosPassos: {
     reuniao: {
       botao: 'Marcar uma reunião',
@@ -15,6 +15,7 @@ self.APP_CONFIG = {
     },
     contato: {
       botao: 'Receber nosso contato',
+      selo: 'BOT 🤖', // o QR de contato leva para um chatbot
       tituloQr: 'Escaneie para falar com a gente',
       imagem: 'img/qr-contato.png',
       cor: '#E4EF3A'

@@ -8,6 +8,7 @@
   var Fila = window.Fila;
   var Sync = window.Sync;
   var CHAVE_VOLUNTARIO = 'voluntario_v1';
+  var CHAVE_DICA_INSTALAR = 'dica_instalar_v1';
 
   // Elemento do formulário de cadastro de cada nome usado por Core.validarCadastro.
   // "contato" é o grupo celular + e-mail: o evento input dos dois campos chega até ele.
@@ -311,6 +312,12 @@
       botao.type = 'button';
       botao.className = 'botao botao-passo';
       botao.textContent = passo.botao;
+      if (passo.selo) {
+        var selo = document.createElement('span');
+        selo.className = 'selo-passo';
+        selo.textContent = passo.selo;
+        botao.appendChild(selo);
+      }
       botao.style.background = passo.cor;
       botao.addEventListener('click', function () {
         escolherPasso(chave);
@@ -485,7 +492,32 @@
     Sync.aoMudar(atualizarBarra);
     Sync.iniciar();
     prepararOffline();
+    prepararDicaDeInstalacao();
     mostrarTela(estado.voluntario ? 'cadastro' : 'identificacao');
+  }
+
+  // No iPhone, instalar exige passos manuais no Safari (o Android oferece a instalação sozinho).
+  // A dica some no app instalado e depois de tocar em "Entendi".
+  function prepararDicaDeInstalacao() {
+    var iphone = /iPhone|iPad|iPod/.test(navigator.userAgent) ||
+      (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1); // iPad se apresenta como Mac
+    var instalado = navigator.standalone === true ||
+      (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches);
+    var dispensada = false;
+    try {
+      dispensada = localStorage.getItem(CHAVE_DICA_INSTALAR) === '1';
+    } catch (erro) {
+      // sem armazenamento: mostra a dica de novo na próxima abertura
+    }
+    $('dica-instalar').hidden = !iphone || instalado || dispensada;
+    $('dica-instalar-ok').addEventListener('click', function () {
+      $('dica-instalar').hidden = true;
+      try {
+        localStorage.setItem(CHAVE_DICA_INSTALAR, '1');
+      } catch (erro) {
+        // sem armazenamento: some só até fechar
+      }
+    });
   }
 
   // Guarda o app para abrir sem internet (sw.js) e pede que o navegador não apague os dados
