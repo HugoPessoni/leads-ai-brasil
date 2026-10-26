@@ -1,6 +1,7 @@
 // Tudo que muda de um evento para outro fica aqui.
 // Este arquivo é público (GitHub Pages): a URL e o token só permitem inserir linhas na planilha.
-window.APP_CONFIG = {
+// "self" funciona na página e no sw.js, que lê as imagens dos QRs daqui para guardar offline.
+self.APP_CONFIG = {
   evento: 'AI.Brasil Experience 2026',
   apiUrl: 'https://script.google.com/macros/s/AKfycbyVBTiPH3WOYrvr_xXkuPhZBPahf3luQwg_Ztqt6tm-s8LL-BS6hEsYppN94GVGLRMU/exec',
   token: '6da5e61d893b47d1b299cc97c7b6d02f4ce772050ed54117a24a5b42bc0134e4',

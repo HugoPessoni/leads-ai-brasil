@@ -136,6 +136,9 @@ Todo lead é gravado no celular antes de qualquer envio; a planilha recebe uma c
 - **Confirmação:** marcar como `enviado` só os `id`s que a resposta listar em `gravados` ou `ignorados` (já existiam). Erro ou mais de 15 segundos sem resposta: continuam pendentes para o próximo ciclo.
 - **Nunca apagar** leads do celular, mesmo enviados. Eles servem de backup e alimentam o aviso de crachá duplicado.
 - **Offline:** o service worker guarda todos os arquivos do app no primeiro acesso; depois disso o app abre sem internet.
+  - Os arquivos vêm do cache primeiro (abre na hora, mesmo com sinal fraco). Ao publicar mudança de código, aumentar `VERSAO` no `sw.js`; o celular baixa a versão nova numa abertura e passa a usá-la na seguinte.
+  - O `sw.js` importa o `config.js` (por isso ele usa `self.APP_CONFIG`) para guardar as imagens dos QRs; mudar só o `config.js` já atualiza o app.
+  - No iPhone, o app instalado na tela inicial guarda os dados separados do Safari: instalar antes do evento e usar só o ícone instalado.
 - **Exportar backup (plano B):** gera um texto com todos os leads deste celular, no formato `LEADS1:` seguido do JSON em Base64 (codificado em UTF-8 para preservar acentos). Abre o compartilhamento nativo do celular (`navigator.share`) ou copia para a área de transferência, para mandar por WhatsApp ou e-mail. A planilha importa esse texto pelo menu "Leads > Importar backup", sem duplicar.
 
 ## Backend: Google Planilha + Apps Script
@@ -210,7 +213,7 @@ Gráficos criados pelo script: pizza de Reunião × Contato, barras do ranking d
 Tudo que muda de um evento para outro fica neste arquivo; os valores abaixo são exemplos a substituir.
 
 ```js
-window.APP_CONFIG = {
+self.APP_CONFIG = {
   evento: 'AI Experience',
   apiUrl: 'https://script.google.com/macros/s/XXXX/exec',
   token: 'troque-por-um-texto-aleatorio-longo',
@@ -269,7 +272,7 @@ Rode tudo nos celulares que os voluntários vão usar, com crachás reais do eve
 - [ ] Dashboard confere com a contagem manual
 - [ ] Exportar backup no celular e importar na planilha sem duplicar
 - [ ] Uso contínuo por uma sessão longa: checar bateria e levar carregadores portáteis
-- [ ] App instalado na tela inicial de cada voluntário antes do evento
+- [ ] App instalado na tela inicial de cada voluntário antes do evento (no iPhone, usar só o ícone instalado: ele não enxerga os dados do Safari)
 
 ## Pendências para preencher antes de começar
 

@@ -373,7 +373,20 @@
 
     Sync.aoMudar(atualizarBarra);
     Sync.iniciar();
+    prepararOffline();
     mostrarTela(estado.voluntario ? 'cadastro' : 'identificacao');
+  }
+
+  // Guarda o app para abrir sem internet (sw.js) e pede que o navegador não apague os dados
+  // deste site quando faltar espaço (os leads ficam no localStorage).
+  function prepararOffline() {
+    if ('serviceWorker' in navigator) {
+      // updateViaCache: 'none' busca sw.js e config.js sempre atualizados, sem o cache HTTP.
+      navigator.serviceWorker.register('sw.js', { updateViaCache: 'none' }).catch(function () {});
+    }
+    if (navigator.storage && navigator.storage.persist) {
+      navigator.storage.persist().catch(function () {});
+    }
   }
 
   iniciar();
