@@ -135,8 +135,11 @@ function importarBackup() {
 
 function recriarDashboard() {
   var ss = SpreadsheetApp.getActiveSpreadsheet();
-  montarDashboard_(obterOuCriarAba_(ss, ABA_DASHBOARD));
-  SpreadsheetApp.getUi().alert('Dashboard recriado.');
+  var problemas = montarDashboard_(obterOuCriarAba_(ss, ABA_DASHBOARD));
+  SpreadsheetApp.getUi().alert(problemas.length
+    ? 'Dashboard recriado, mas ' + problemas.length + ' fórmula(s) com problema: ' + problemas.join(', ') +
+      '. Envie esta mensagem para quem mantém o app.'
+    : 'Dashboard recriado. Todas as fórmulas calcularam.');
 }
 
 /* ---------- Dashboard ---------- */
@@ -145,12 +148,54 @@ var VERDE = '#6BDD3E';
 var LIMA = '#E4EF3A';
 var CINZA_CABECALHO = '#EFEFEF';
 var LINHAS_RESERVADAS = 200; // tamanho das áreas lidas pelos gráficos
+var SEM_LEADS = 'Sem leads ainda'; // o que as tabelas mostram com a aba Leads vazia
+var LOCALIDADE_DAS_FORMULAS = 'en_US';
 
 /**
  * Apaga e monta a aba Dashboard: KPIs com fórmulas (atualizam sozinhas) e três gráficos.
- * Fórmulas com nomes em inglês e vírgula como separador, como o Apps Script exige.
+ * As fórmulas são escritas em inglês, com vírgula. Uma planilha em português lê ponto e vírgula,
+ * então a localidade fica en_US só durante a escrita; ao voltar, o Google converte as fórmulas.
+ * Retorna as células com problema (vazio se tudo calculou).
  */
 function montarDashboard_(aba) {
+  var ss = aba.getParent();
+  var localidade = ss.getSpreadsheetLocale();
+  var trocar = localidade !== LOCALIDADE_DAS_FORMULAS;
+  if (trocar) ss.setSpreadsheetLocale(LOCALIDADE_DAS_FORMULAS);
+  try {
+    escreverDashboard_(aba);
+    SpreadsheetApp.flush();
+  } finally {
+    if (trocar) ss.setSpreadsheetLocale(localidade);
+  }
+  SpreadsheetApp.flush();
+
+  var problemas = conferirDashboard_(aba);
+  Logger.log(problemas.length
+    ? 'Dashboard com problemas: ' + problemas.join(', ')
+    : 'Dashboard ok: todas as fórmulas calcularam.');
+  return problemas;
+}
+
+// Lê o que cada fórmula mostra: erro (#ERROR!, #N/A...) ou "Sem leads ainda" com leads na planilha.
+function conferirDashboard_(aba) {
+  var faixa = aba.getDataRange();
+  var formulas = faixa.getFormulas();
+  var mostrados = faixa.getDisplayValues();
+  var temLeads = Number(aba.getRange('B4').getValue()) > 0;
+  var problemas = [];
+  formulas.forEach(function (linha, i) {
+    linha.forEach(function (formula, j) {
+      var mostrado = mostrados[i][j];
+      if (formula && (/^#/.test(mostrado) || (temLeads && mostrado === SEM_LEADS))) {
+        problemas.push(letraDaColuna_(j + 1) + (i + 1) + ' (' + mostrado + ')');
+      }
+    });
+  });
+  return problemas;
+}
+
+function escreverDashboard_(aba) {
   aba.getCharts().forEach(function (grafico) {
     aba.removeChart(grafico);
   });
@@ -185,7 +230,7 @@ function montarDashboard_(aba) {
   aba.getRange('A21').setFormula(f_(
     '=IFERROR(QUERY({ARRAYFORMULA(IF({cracha_tipo}="","Sem crachá",{cracha_tipo})),{proximo_passo},{id}},' +
     '"select Col1, count(Col3) where Col3 is not null group by Col1 pivot Col2 label Col1 \'Tipo de crachá\'",0),' +
-    '"Sem leads ainda")'
+    '"' + SEM_LEADS + '")'
   ));
 
   // Crachás cadastrados mais de uma vez (no mesmo celular ou em celulares diferentes).
@@ -204,7 +249,7 @@ function montarDashboard_(aba) {
     'r,ARRAYFORMULA(COUNTIFS({voluntario},v,{proximo_passo},"Reunião")),' +
     'c,ARRAYFORMULA(COUNTIFS({voluntario},v,{proximo_passo},"Contato")),' +
     't,ARRAYFORMULA(COUNTIFS({voluntario},v,{id},"<>")),' +
-    '{v,r,c,t,ARRAYFORMULA(r/t)}),4,FALSE,1,TRUE),"Sem leads ainda")'
+    '{v,r,c,t,ARRAYFORMULA(r/t)}),4,FALSE,1,TRUE),"' + SEM_LEADS + '")'
   ));
   aba.getRange(6, 9, LINHAS_RESERVADAS, 1).setNumberFormat('0%');
 
@@ -212,7 +257,7 @@ function montarDashboard_(aba) {
   titulo_(aba, 'K4', 'Leads por dia');
   aba.getRange('K5').setFormula(f_(
     '=IFERROR(QUERY({todas},"select [data], count([id]) where [id] is not null group by [data] order by [data] ' +
-    'label [data] \'Dia\', count([id]) \'Leads\'",0),"Sem leads ainda")'
+    'label [data] \'Dia\', count([id]) \'Leads\'",0),"' + SEM_LEADS + '")'
   ));
   aba.getRange(6, 11, LINHAS_RESERVADAS, 1).setNumberFormat('dd/mm/yyyy');
 
@@ -220,7 +265,7 @@ function montarDashboard_(aba) {
   aba.getRange('N5').setFormula(f_(
     '=IFERROR(QUERY({ARRAYFORMULA(IF({id}="","",TEXT({data},"dd/mm")&" "&TEXT({hora},"00")&"h")),{id}},' +
     '"select Col1, count(Col2) where Col2 is not null group by Col1 order by Col1 ' +
-    'label Col1 \'Dia e hora\', count(Col2) \'Leads\'",0),"Sem leads ainda")'
+    'label Col1 \'Dia e hora\', count(Col2) \'Leads\'",0),"' + SEM_LEADS + '")'
   ));
 
   [[1, 230], [2, 150], [3, 70], [5, 170], [6, 80], [7, 80], [8, 70], [9, 90], [11, 110], [12, 70], [14, 120], [15, 70]]
