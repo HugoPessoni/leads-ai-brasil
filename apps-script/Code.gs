@@ -8,10 +8,11 @@
 // Pede acesso só a esta planilha, não a todas as planilhas da conta.
 /** @OnlyCurrentDoc */
 
-var VERSAO = '1';
+var VERSAO = '2';
 
 var ABA_LEADS = 'Leads';
 var ABA_DASHBOARD = 'Dashboard';
+var ABA_RANKING = 'Ranking';
 var ABA_CONFIG = 'Config';
 
 // Ordem das colunas da aba Leads. As fórmulas do Dashboard usam esta constante.
@@ -32,10 +33,12 @@ var COLUNAS = [
   'observacao',
   'autorizou_contato',
   'origem_nome',
-  'dispositivo'
+  'dispositivo',
+  'temperatura' // no fim: assim as linhas gravadas antes dela continuam alinhadas
 ];
 
 var MAX_CARACTERES = 200;
+var MAX_OBSERVACAO = 500; // resumo da conversa, escrito na tela do QR
 var MAX_LEADS_POR_REQUISICAO = 50;
 var ESPERA_LOCK_MS = 10000;
 
@@ -46,6 +49,7 @@ var FORMATO_DATA = 'yyyy-mm-dd';
 // Valores que o app envia -> texto gravado na planilha.
 var PROXIMOS_PASSOS = { reuniao: 'Reunião', contato: 'Contato' };
 var ORIGENS = { qr: 'QR', manual: 'Manual' };
+var TEMPERATURAS = { quente: 'Quente', morno: 'Morno', frio: 'Frio' };
 
 /* ---------- Configuração inicial (rodar uma vez, pelo editor) ---------- */
 
@@ -57,12 +61,14 @@ function setup() {
   if (leads.getLastRow() === 0) {
     leads.getRange(1, 1, 1, COLUNAS.length).setValues([COLUNAS]).setFontWeight('bold');
     leads.setFrozenRows(1);
+  } else {
+    garantirCabecalho_(leads);
   }
 
-  // Dashboard só tem fórmulas e gráficos: monta se estiver vazio (para refazer: menu Leads > Recriar Dashboard).
-  var dashboard = obterOuCriarAba_(ss, ABA_DASHBOARD);
-  if (dashboard.getLastRow() === 0 && dashboard.getCharts().length === 0) {
-    montarDashboard_(dashboard);
+  // Dashboard e Ranking só têm fórmulas e gráficos: monta se algum estiver vazio
+  // (para refazer: menu Leads > Recriar Dashboard).
+  if (painelVazio_(ss.getSheetByName(ABA_DASHBOARD)) || painelVazio_(ss.getSheetByName(ABA_RANKING))) {
+    montarPaineis_(ss);
   }
 
   var config = obterOuCriarAba_(ss, ABA_CONFIG);
@@ -135,149 +141,230 @@ function importarBackup() {
 
 function recriarDashboard() {
   var ss = SpreadsheetApp.getActiveSpreadsheet();
-  var problemas = montarDashboard_(obterOuCriarAba_(ss, ABA_DASHBOARD));
+  garantirCabecalho_(obterOuCriarAba_(ss, ABA_LEADS));
+  var problemas = montarPaineis_(ss);
   SpreadsheetApp.getUi().alert(problemas.length
-    ? 'Dashboard recriado, mas ' + problemas.length + ' fórmula(s) com problema: ' + problemas.join(', ') +
+    ? 'Dashboard e Ranking recriados, mas ' + problemas.length + ' fórmula(s) com problema: ' + problemas.join(', ') +
       '. Envie esta mensagem para quem mantém o app.'
-    : 'Dashboard recriado. Todas as fórmulas calcularam.');
+    : 'Dashboard e Ranking recriados. Todas as fórmulas calcularam.');
 }
 
-/* ---------- Dashboard ---------- */
+/* ---------- Dashboard e Ranking ---------- */
 
 var VERDE = '#6BDD3E';
 var LIMA = '#E4EF3A';
+var CORES_TEMPERATURA = ['#FF6B35', '#F2C14E', '#5BC0EB']; // quente, morno, frio
+var CORES_DIAS = [VERDE, LIMA, '#5BC0EB', '#FF6B35', '#B39DDB'];
 var CINZA_CABECALHO = '#EFEFEF';
 var LINHAS_RESERVADAS = 200; // tamanho das áreas lidas pelos gráficos
 var SEM_LEADS = 'Sem leads ainda'; // o que as tabelas mostram com a aba Leads vazia
 var LOCALIDADE_DAS_FORMULAS = 'en_US';
 
+function painelVazio_(aba) {
+  return !aba || (aba.getLastRow() === 0 && aba.getCharts().length === 0);
+}
+
 /**
- * Apaga e monta a aba Dashboard: KPIs com fórmulas (atualizam sozinhas) e três gráficos.
+ * Apaga e monta as abas Dashboard (visão geral) e Ranking (leaderboard e métricas por voluntário).
+ * Tudo com fórmulas, que atualizam sozinhas a cada lead que chega.
  * As fórmulas são escritas em inglês, com vírgula. Uma planilha em português lê ponto e vírgula,
  * então a localidade fica en_US só durante a escrita; ao voltar, o Google converte as fórmulas.
  * Retorna as células com problema (vazio se tudo calculou).
  */
-function montarDashboard_(aba) {
-  var ss = aba.getParent();
+function montarPaineis_(ss) {
+  var dashboard = obterOuCriarAba_(ss, ABA_DASHBOARD);
+  var ranking = obterOuCriarAba_(ss, ABA_RANKING);
   var localidade = ss.getSpreadsheetLocale();
   var trocar = localidade !== LOCALIDADE_DAS_FORMULAS;
   if (trocar) ss.setSpreadsheetLocale(LOCALIDADE_DAS_FORMULAS);
   try {
-    escreverDashboard_(aba);
+    escreverDashboard_(dashboard);
+    escreverRanking_(ranking);
     SpreadsheetApp.flush();
   } finally {
     if (trocar) ss.setSpreadsheetLocale(localidade);
   }
   SpreadsheetApp.flush();
 
-  var problemas = conferirDashboard_(aba);
+  ss.setActiveSheet(ranking);
+  ss.moveActiveSheet(1);
+  ss.setActiveSheet(dashboard);
+  ss.moveActiveSheet(1);
+
+  var temLeads = obterOuCriarAba_(ss, ABA_LEADS).getLastRow() > 1;
+  var problemas = conferirPainel_(dashboard, temLeads).concat(conferirPainel_(ranking, temLeads));
   Logger.log(problemas.length
-    ? 'Dashboard com problemas: ' + problemas.join(', ')
-    : 'Dashboard ok: todas as fórmulas calcularam.');
+    ? 'Painéis com problemas: ' + problemas.join(', ')
+    : 'Painéis ok: todas as fórmulas calcularam.');
   return problemas;
 }
 
 // Lê o que cada fórmula mostra: erro (#ERROR!, #N/A...) ou "Sem leads ainda" com leads na planilha.
-function conferirDashboard_(aba) {
+function conferirPainel_(aba, temLeads) {
   var faixa = aba.getDataRange();
   var formulas = faixa.getFormulas();
   var mostrados = faixa.getDisplayValues();
-  var temLeads = Number(aba.getRange('B4').getValue()) > 0;
   var problemas = [];
   formulas.forEach(function (linha, i) {
     linha.forEach(function (formula, j) {
       var mostrado = mostrados[i][j];
       if (formula && (/^#/.test(mostrado) || (temLeads && mostrado === SEM_LEADS))) {
-        problemas.push(letraDaColuna_(j + 1) + (i + 1) + ' (' + mostrado + ')');
+        problemas.push(aba.getName() + '!' + letraDaColuna_(j + 1) + (i + 1) + ' (' + mostrado + ')');
       }
     });
   });
   return problemas;
 }
 
-function escreverDashboard_(aba) {
+function limparPainel_(aba, titulo, subtitulo) {
   aba.getCharts().forEach(function (grafico) {
     aba.removeChart(grafico);
   });
   aba.clear();
+  aba.getRange('A1').setValue(titulo).setFontSize(16).setFontWeight('bold');
+  aba.getRange('A2').setValue(subtitulo).setFontColor('#666666');
+}
 
-  aba.getRange('A1').setValue('Dashboard de leads').setFontSize(16).setFontWeight('bold');
-  aba.getRange('A2')
-    .setValue('Atualiza sozinho a cada lead que chega. Para refazer: menu Leads > Recriar Dashboard.')
-    .setFontColor('#666666');
+/* Dashboard: visão geral do estande. */
+function escreverDashboard_(aba) {
+  limparPainel_(aba, 'Dashboard de leads',
+    'Atualiza sozinho a cada lead que chega. Ranking dos voluntários na aba Ranking. Para refazer: menu Leads > Recriar Dashboard.');
 
   // Resumo
-  aba.getRange('A4:A5').setValues([['Total de leads'], ['Último lead recebido']]).setFontWeight('bold');
+  aba.getRange('A4:A6').setValues([['Total de leads'], ['Último lead recebido'], ['Horário de pico']]).setFontWeight('bold');
   aba.getRange('B4').setFormula(f_('=COUNTA({id})'));
   aba.getRange('B5').setFormula(f_('=IF(B4=0,"—",MAX({recebido_em}))')).setNumberFormat('dd/mm/yyyy hh:mm:ss');
+  aba.getRange('B6').setFormula(f_('=' + pico_('FILTER({hora},{hora}<>"")')));
 
-  tabelaDeContagem_(aba, 7, 'Próximo passo', [
+  tabelaDeContagem_(aba, 8, 'Próximo passo', [
     ['Reunião', '=COUNTIF({proximo_passo},"Reunião")'],
     ['Contato', '=COUNTIF({proximo_passo},"Contato")']
   ]);
-  tabelaDeContagem_(aba, 11, 'Qualidade do contato', [
+  tabelaDeContagem_(aba, 12, 'Temperatura', [
+    ['🔥 Quente', '=COUNTIF({temperatura},"Quente")'],
+    ['💨 Morno', '=COUNTIF({temperatura},"Morno")'],
+    ['❄️ Frio', '=COUNTIF({temperatura},"Frio")'],
+    ['Sem temperatura', '=COUNTIFS({id},"<>",{temperatura},"")']
+  ]);
+  tabelaDeContagem_(aba, 18, 'Qualidade do contato', [
     ['Com celular', '=COUNTA({celular})'],
     ['Com e-mail', '=COUNTA({email})'],
     ['Com os dois', '=COUNTIFS({celular},"<>",{email},"<>")']
   ]);
-  tabelaDeContagem_(aba, 16, 'Leitura do crachá', [
+  tabelaDeContagem_(aba, 23, 'Leitura do crachá', [
     ['QR', '=COUNTIF({origem_nome},"QR")'],
     ['Manual', '=COUNTIF({origem_nome},"Manual")']
   ]);
 
   // Tipo de crachá (DOI, FD...) cruzado com o próximo passo. Lead digitado não tem tipo: "Sem crachá".
-  titulo_(aba, 'A20', 'Tipo de crachá × próximo passo');
-  aba.getRange('A21').setFormula(f_(
+  titulo_(aba, 'A27', 'Tipo de crachá × próximo passo');
+  aba.getRange('A28').setFormula(f_(
     '=IFERROR(QUERY({ARRAYFORMULA(IF({cracha_tipo}="","Sem crachá",{cracha_tipo})),{proximo_passo},{id}},' +
     '"select Col1, count(Col3) where Col3 is not null group by Col1 pivot Col2 label Col1 \'Tipo de crachá\'",0),' +
     '"' + SEM_LEADS + '")'
   ));
 
   // Crachás cadastrados mais de uma vez (no mesmo celular ou em celulares diferentes).
-  titulo_(aba, 'A27', 'Crachás com mais de um cadastro');
+  titulo_(aba, 'A34', 'Crachás com mais de um cadastro');
   var porCracha = 'QUERY({todas},"select [cracha_codigo], count([id]) where [cracha_codigo] is not null ' +
     'group by [cracha_codigo] label count([id]) \'\'",0)';
-  aba.getRange('B27').setFormula(f_('=IFERROR(ROWS(QUERY(' + porCracha + ',"select Col1 where Col2 > 1",0)),0)'));
-  aba.getRange('A28').setFormula(f_('=IFERROR(QUERY(' + porCracha + ',"select Col1, Col2 where Col2 > 1 order by Col2 desc ' +
+  aba.getRange('B34').setFormula(f_('=IFERROR(ROWS(QUERY(' + porCracha + ',"select Col1 where Col2 > 1",0)),0)'));
+  aba.getRange('A35').setFormula(f_('=IFERROR(QUERY(' + porCracha + ',"select Col1, Col2 where Col2 > 1 order by Col2 desc ' +
     'label Col1 \'Crachá\', Col2 \'Cadastros\'",0),"Nenhum")'));
 
-  // Ranking de voluntários, do maior total para o menor.
-  titulo_(aba, 'E4', 'Ranking de voluntários');
-  cabecalho_(aba.getRange('E5:I5').setValues([['Voluntário', 'Reunião', 'Contato', 'Total', '% reunião']]));
+  // Por dia: volume, próximo passo, temperatura e horário de pico de cada dia.
+  titulo_(aba, 'E4', 'Por dia');
+  cabecalho_(aba.getRange('E5:L5').setValues([[
+    'Dia', 'Leads', 'Reunião', 'Contato', '🔥 Quente', '💨 Morno', '❄️ Frio', 'Horário de pico'
+  ]]));
   aba.getRange('E6').setFormula(f_(
-    '=IFERROR(SORT(LET(v,UNIQUE(FILTER({voluntario},{id}<>"")),' +
-    'r,ARRAYFORMULA(COUNTIFS({voluntario},v,{proximo_passo},"Reunião")),' +
-    'c,ARRAYFORMULA(COUNTIFS({voluntario},v,{proximo_passo},"Contato")),' +
-    't,ARRAYFORMULA(COUNTIFS({voluntario},v,{id},"<>")),' +
-    '{v,r,c,t,ARRAYFORMULA(r/t)}),4,FALSE,1,TRUE),"' + SEM_LEADS + '")'
+    '=IFERROR(LET(datas,SORT(UNIQUE(FILTER({data},{data}<>""))),' +
+    'qtd,MAP(datas,LAMBDA(x,COUNTIFS({data},x,{id},"<>"))),' +
+    'reuniao,MAP(datas,LAMBDA(x,COUNTIFS({data},x,{proximo_passo},"Reunião"))),' +
+    'contato,MAP(datas,LAMBDA(x,COUNTIFS({data},x,{proximo_passo},"Contato"))),' +
+    'quente,MAP(datas,LAMBDA(x,COUNTIFS({data},x,{temperatura},"Quente"))),' +
+    'morno,MAP(datas,LAMBDA(x,COUNTIFS({data},x,{temperatura},"Morno"))),' +
+    'frio,MAP(datas,LAMBDA(x,COUNTIFS({data},x,{temperatura},"Frio"))),' +
+    'pico,MAP(datas,LAMBDA(x,' + pico_('FILTER({hora},{data}=x)') + ')),' +
+    '{datas,qtd,reuniao,contato,quente,morno,frio,pico}),"' + SEM_LEADS + '")'
   ));
-  aba.getRange(6, 9, LINHAS_RESERVADAS, 1).setNumberFormat('0%');
+  aba.getRange(6, 5, LINHAS_RESERVADAS, 1).setNumberFormat('dd/mm/yyyy');
 
-  // Leads por dia e por hora (horário do celular, não da chegada).
-  titulo_(aba, 'K4', 'Leads por dia');
-  aba.getRange('K5').setFormula(f_(
-    '=IFERROR(QUERY({todas},"select [data], count([id]) where [id] is not null group by [data] order by [data] ' +
-    'label [data] \'Dia\', count([id]) \'Leads\'",0),"' + SEM_LEADS + '")'
-  ));
-  aba.getRange(6, 11, LINHAS_RESERVADAS, 1).setNumberFormat('dd/mm/yyyy');
-
-  titulo_(aba, 'N4', 'Leads por hora');
+  // Leads por hora, uma coluna por dia: mostra os horários de pico do estande e compara os dias.
+  titulo_(aba, 'N4', 'Leads por hora (uma coluna por dia)');
   aba.getRange('N5').setFormula(f_(
-    '=IFERROR(QUERY({ARRAYFORMULA(IF({id}="","",TEXT({data},"dd/mm")&" "&TEXT({hora},"00")&"h")),{id}},' +
-    '"select Col1, count(Col2) where Col2 is not null group by Col1 order by Col1 ' +
-    'label Col1 \'Dia e hora\', count(Col2) \'Leads\'",0),"' + SEM_LEADS + '")'
+    '=IFERROR(QUERY({{hora},ARRAYFORMULA(TEXT({data},"dd/mm")),{id}},' +
+    '"select Col1, count(Col3) where Col3 is not null and Col1 is not null group by Col1 pivot Col2 order by Col1 ' +
+    'label Col1 \'Hora\'",0),"' + SEM_LEADS + '")'
   ));
+  aba.getRange(6, 14, LINHAS_RESERVADAS, 1).setNumberFormat('00"h"');
 
-  [[1, 230], [2, 150], [3, 70], [5, 170], [6, 80], [7, 80], [8, 70], [9, 90], [11, 110], [12, 70], [14, 120], [15, 70]]
+  [[1, 230], [2, 150], [3, 70], [5, 100], [6, 70], [7, 75], [8, 75], [9, 85], [10, 85], [11, 75], [12, 120], [14, 70]]
     .forEach(function (par) {
       aba.setColumnWidth(par[0], par[1]);
     });
 
-  inserirGraficos_(aba);
+  // Mesmas cores dos botões do app: reunião verde, contato amarelo-lima.
+  inserirGrafico_(aba, Charts.ChartType.PIE, [aba.getRange('A9:B10')], 0, 4, 24, 'Reunião × Contato', { colors: [VERDE, LIMA] });
+  inserirGrafico_(aba, Charts.ChartType.PIE, [aba.getRange('A13:B15')], 0, 22, 24, 'Temperatura dos leads',
+    { colors: CORES_TEMPERATURA });
+  inserirGrafico_(aba, Charts.ChartType.COLUMN, [aba.getRange(5, 14, LINHAS_RESERVADAS + 1, 6)], 1, 40, 24,
+    'Leads por hora (uma cor por dia)', { colors: CORES_DIAS });
+}
 
-  var ss = aba.getParent();
-  ss.setActiveSheet(aba);
-  ss.moveActiveSheet(1);
+/* Ranking: leaderboard e métricas pessoais de cada voluntário. */
+function escreverRanking_(aba) {
+  limparPainel_(aba, 'Ranking dos voluntários', '');
+  // Quais datas são o Dia 1 e o Dia 2 (os dois primeiros dias com leads).
+  aba.getRange('A2').setFormula(f_(
+    '=IFERROR("Dia 1 = "&TEXT(SMALL(UNIQUE(FILTER({data},{data}<>"")),1),"dd/mm")&' +
+    'IFERROR("   ·   Dia 2 = "&TEXT(SMALL(UNIQUE(FILTER({data},{data}<>"")),2),"dd/mm")&' +
+    '"   ·   Evolução = Dia 2 comparado ao Dia 1",""),"' + SEM_LEADS + '")'
+  ));
+
+  cabecalho_(aba.getRange('A4:J4').setValues([[
+    'Posição', 'Voluntário', 'Leads', '🔥 Quentes', 'Reuniões', '% reunião', 'Dia 1', 'Dia 2', 'Evolução', 'Horário de pico'
+  ]]));
+  // Ordem: mais leads; empate, mais quentes; depois nome.
+  aba.getRange('A5').setFormula(f_(
+    '=IFERROR(LET(vol,UNIQUE(FILTER({voluntario},{id}<>"")),' +
+    'total,MAP(vol,LAMBDA(x,COUNTIFS({voluntario},x,{id},"<>"))),' +
+    'quentes,MAP(vol,LAMBDA(x,COUNTIFS({voluntario},x,{temperatura},"Quente"))),' +
+    'reunioes,MAP(vol,LAMBDA(x,COUNTIFS({voluntario},x,{proximo_passo},"Reunião"))),' +
+    'datas,SORT(UNIQUE(FILTER({data},{data}<>""))),' +
+    'diaum,INDEX(datas,1,1),' +
+    'diadois,IF(ROWS(datas)>1,INDEX(datas,2,1),""),' +
+    'noum,MAP(vol,LAMBDA(x,COUNTIFS({voluntario},x,{data},diaum))),' +
+    'nodois,MAP(vol,LAMBDA(x,IF(diadois="","",COUNTIFS({voluntario},x,{data},diadois)))),' +
+    'evolucao,MAP(noum,nodois,LAMBDA(antes,depois,IF(OR(depois="",antes=0),"",(depois-antes)/antes))),' +
+    'pico,MAP(vol,LAMBDA(x,' + pico_('FILTER({hora},{voluntario}=x)') + ')),' +
+    'tabela,SORT({vol,total,quentes,reunioes,MAP(reunioes,total,LAMBDA(parte,tudo,parte/tudo)),noum,nodois,evolucao,pico},' +
+    '2,FALSE,3,FALSE,1,TRUE),' +
+    '{MAP(SEQUENCE(ROWS(tabela)),LAMBDA(posicao,IF(posicao=1,"🥇 1º",IF(posicao=2,"🥈 2º",' +
+    'IF(posicao=3,"🥉 3º",posicao&"º"))))),tabela}),' +
+    '"' + SEM_LEADS + '")'
+  ));
+  aba.getRange(5, 6, LINHAS_RESERVADAS, 1).setNumberFormat('0%');
+  aba.getRange(5, 9, LINHAS_RESERVADAS, 1).setNumberFormat('+0%;-0%;0%');
+
+  [[1, 80], [2, 180], [3, 70], [4, 90], [5, 85], [6, 90], [7, 65], [8, 65], [9, 90], [10, 120]].forEach(function (par) {
+    aba.setColumnWidth(par[0], par[1]);
+  });
+
+  inserirGrafico_(aba, Charts.ChartType.BAR, [aba.getRange(4, 2, LINHAS_RESERVADAS + 1, 2)], 1, 4, 12,
+    'Leads por voluntário', { colors: [VERDE], legend: { position: 'none' } });
+  inserirGrafico_(aba, Charts.ChartType.COLUMN,
+    [aba.getRange(4, 2, LINHAS_RESERVADAS + 1, 1), aba.getRange(4, 7, LINHAS_RESERVADAS + 1, 2)], 1, 22, 12,
+    'Dia 1 × Dia 2 por voluntário', { colors: [VERDE, LIMA] });
+}
+
+/**
+ * Fórmula do horário com mais leads entre as horas dadas (empate: o mais cedo), como "10h"; sem horas, "—".
+ * Usa nomes próprios (horas, unicas, k) para não colidir com os nomes do LET de fora.
+ */
+function pico_(horas) {
+  return 'IFERROR(TEXT(LET(horas,' + horas + ',unicas,UNIQUE(horas),' +
+    'INDEX(SORT({unicas,MAP(unicas,LAMBDA(k,SUMPRODUCT(--(horas=k))))},2,FALSE,1,TRUE),1,1)),"00")&"h","—")';
 }
 
 // Cabeçalho [título, Leads, %] e uma linha por item: [rótulo, fórmula da contagem]. % sobre o total (B4).
@@ -299,41 +386,23 @@ function cabecalho_(intervalo) {
   return intervalo.setFontWeight('bold').setBackground(CINZA_CABECALHO);
 }
 
-function inserirGraficos_(aba) {
-  // Mesmas cores dos botões do app: reunião verde, contato amarelo-lima.
-  aba.insertChart(aba.newChart()
-    .setChartType(Charts.ChartType.PIE)
-    .addRange(aba.getRange('A8:B9'))
-    .setPosition(4, 17, 0, 0)
-    .setOption('title', 'Reunião × Contato')
-    .setOption('colors', [VERDE, LIMA])
-    .build());
-
-  aba.insertChart(aba.newChart()
-    .setChartType(Charts.ChartType.BAR)
-    .addRange(aba.getRange(5, 5, LINHAS_RESERVADAS + 1, 3)) // Voluntário, Reunião, Contato
-    .setNumHeaders(1)
-    .setPosition(22, 17, 0, 0)
-    .setOption('title', 'Ranking de voluntários')
-    .setOption('isStacked', true)
-    .setOption('colors', [VERDE, LIMA])
-    .build());
-
-  aba.insertChart(aba.newChart()
-    .setChartType(Charts.ChartType.COLUMN)
-    .addRange(aba.getRange(5, 14, LINHAS_RESERVADAS + 1, 2)) // Dia e hora, Leads
-    .setNumHeaders(1)
-    .setPosition(40, 17, 0, 0)
-    .setOption('title', 'Leads por hora')
-    .setOption('legend', { position: 'none' })
-    .setOption('colors', [VERDE])
-    .build());
+// Gráfico flutuante na linha/coluna dadas. intervalos: o primeiro é o eixo (rótulos), os outros as séries.
+function inserirGrafico_(aba, tipo, intervalos, linhasDeCabecalho, linha, coluna, titulo, opcoes) {
+  var construtor = aba.newChart().setChartType(tipo).setPosition(linha, coluna, 0, 0).setOption('title', titulo);
+  intervalos.forEach(function (intervalo) {
+    construtor.addRange(intervalo);
+  });
+  if (linhasDeCabecalho) construtor.setNumHeaders(linhasDeCabecalho);
+  Object.keys(opcoes).forEach(function (chave) {
+    construtor.setOption(chave, opcoes[chave]);
+  });
+  aba.insertChart(construtor.build());
 }
 
 /**
  * Troca os nomes das colunas pela posição real na aba Leads (constante COLUNAS):
  * {campo} vira o intervalo "Leads!X2:X", [campo] vira a letra "X" (para o texto da QUERY)
- * e {todas} vira "Leads!A2:Q". Nome errado interrompe o setup, em vez de gerar fórmula quebrada.
+ * e {todas} vira "Leads!A2:<última coluna>". Nome errado interrompe o setup, em vez de gerar fórmula quebrada.
  */
 function f_(modelo) {
   var ultima = letraDaColuna_(COLUNAS.length);
@@ -424,10 +493,11 @@ function montarLinha_(lead, id, recebidoEm, fuso) {
     celular: texto_(lead.celular),
     email: texto_(lead.email),
     proximo_passo: rotulo_(PROXIMOS_PASSOS, lead.proximo_passo),
-    observacao: texto_(lead.observacao),
+    observacao: texto_(lead.observacao, MAX_OBSERVACAO),
     autorizou_contato: lead.autorizou_contato === true ? 'Sim' : 'Não',
     origem_nome: rotulo_(ORIGENS, lead.origem_nome),
-    dispositivo: texto_(lead.dispositivo)
+    dispositivo: texto_(lead.dispositivo),
+    temperatura: rotulo_(TEMPERATURAS, lead.temperatura)
   };
   return COLUNAS.map(function (coluna) {
     return valores[coluna];
@@ -460,6 +530,16 @@ function obterOuCriarAba_(ss, nome) {
   return ss.getSheetByName(nome) || ss.insertSheet(nome);
 }
 
+// Escreve no cabeçalho da aba Leads os nomes de colunas novas (ex.: temperatura), sem mexer nos dados.
+function garantirCabecalho_(aba) {
+  var faltam = COLUNAS.length - aba.getMaxColumns();
+  if (faltam > 0) aba.insertColumnsAfter(aba.getMaxColumns(), faltam);
+  var atual = aba.getRange(1, 1, 1, COLUNAS.length).getValues()[0];
+  COLUNAS.forEach(function (nome, i) {
+    if (atual[i] === '') aba.getRange(1, i + 1).setValue(nome).setFontWeight('bold');
+  });
+}
+
 function lerToken_() {
   var aba = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(ABA_CONFIG);
   if (!aba || aba.getLastRow() === 0) return '';
@@ -478,16 +558,16 @@ function colunaDe_(nome) {
   return COLUNAS.indexOf(nome) + 1;
 }
 
-// Converte para texto, tira espaços das pontas e corta em MAX_CARACTERES.
-function limitar_(valor) {
+// Converte para texto, tira espaços das pontas e corta em maximo (padrão: MAX_CARACTERES).
+function limitar_(valor, maximo) {
   if (valor === null || valor === undefined) return '';
-  return String(valor).trim().slice(0, MAX_CARACTERES);
+  return String(valor).trim().slice(0, maximo || MAX_CARACTERES);
 }
 
 // Texto pronto para a planilha. O apóstrofo faz a planilha guardar exatamente o que veio,
 // sem converter em número, data ou fórmula (quem envia pode ser qualquer pessoa).
-function texto_(valor) {
-  var limpo = limitar_(valor);
+function texto_(valor, maximo) {
+  var limpo = limitar_(valor, maximo);
   return limpo ? "'" + limpo : '';
 }
 

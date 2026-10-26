@@ -115,7 +115,7 @@
   /**
    * Lead pronto para a fila e para a planilha (mesmos nomes de campo do Code.gs).
    * dados: { id, agora, voluntario, dispositivo, cracha, origemNome, nome, empresa, celular, email,
-   *          autorizou, proximoPasso, observacao }
+   *          autorizou, proximoPasso, temperatura, observacao }
    */
   function montarLead(dados) {
     var cracha = dados.cracha;
@@ -131,6 +131,7 @@
       celular: formatarCelular(dados.celular),
       email: String(dados.email || '').trim().toLowerCase(),
       proximo_passo: dados.proximoPasso,
+      temperatura: dados.temperatura || '',
       observacao: String(dados.observacao || '').trim(),
       autorizou_contato: dados.autorizou === true,
       origem_nome: dados.origemNome === 'qr' ? 'qr' : 'manual',

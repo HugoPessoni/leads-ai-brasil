@@ -81,10 +81,8 @@
     <!-- 3. Próximo passo -->
     <section id="tela-passo" class="tela" hidden>
       <h1><span class="fino">Qual o melhor</span> <span class="destaque">próximo passo?</span></h1>
-      <div class="campo">
-        <label for="lead-observacao">Observação <span class="opcional">(opcional)</span></label>
-        <input id="lead-observacao" type="text" autocomplete="off" enterkeyhint="done">
-      </div>
+      <!-- Temperatura do lead: só ícones, montados a partir do config.js -->
+      <div id="temperatura" class="temperatura" role="radiogroup" aria-label="Temperatura do lead"></div>
       <div id="botoes-passo" class="botoes-passo"></div>
       <button id="voltar-cadastro" class="link" type="button">Voltar</button>
     </section>
@@ -95,6 +93,10 @@
       <h1 id="qr-titulo"></h1>
       <img id="qr-imagem" class="qr-imagem" alt="QR code">
       <p id="qr-erro" class="qr-erro" hidden></p>
+      <div class="campo campo-observacao">
+        <label for="lead-observacao">Observação <span class="opcional">(opcional)</span></label>
+        <textarea id="lead-observacao" rows="3" maxlength="500" placeholder="Resumo da conversa" autocomplete="off"></textarea>
+      </div>
       <button id="novo-lead" class="botao botao-principal botao-grande" type="button">Novo lead</button>
       <button id="trocar-opcao" class="link" type="button">Trocar opção</button>
     </section>

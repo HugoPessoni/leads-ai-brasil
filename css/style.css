@@ -77,7 +77,8 @@ body::before {
 }
 
 button,
-input {
+input,
+textarea {
   font: inherit;
   color: inherit;
 }
@@ -264,7 +265,8 @@ main {
 }
 
 /* 18px evita o zoom automático do Safari ao tocar no campo. */
-.campo input {
+.campo input,
+.campo textarea {
   width: 100%;
   min-height: 54px;
   padding: 0 16px;
@@ -274,11 +276,20 @@ main {
   font-size: 18px;
 }
 
-.campo input::placeholder {
+.campo textarea {
+  min-height: 96px;
+  padding: 12px 16px;
+  line-height: 1.4;
+  resize: vertical;
+}
+
+.campo input::placeholder,
+.campo textarea::placeholder {
   color: #6b6b6b;
 }
 
 .campo input:focus,
+.campo textarea:focus,
 .checkbox:focus-within {
   border-color: var(--verde);
   outline: 2px solid rgb(107 221 62 / 0.35);
@@ -369,6 +380,36 @@ main {
   text-underline-offset: 4px;
 }
 
+/* Temperatura: três ícones lado a lado; o escolhido fica destacado. */
+.temperatura {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+  padding: 4px;
+  border: 1.5px solid transparent;
+  border-radius: calc(var(--raio) + 4px);
+}
+
+.temperatura[aria-invalid="true"] {
+  border-color: var(--erro);
+}
+
+.botao-temperatura {
+  min-height: 76px;
+  border: 1.5px solid var(--linha);
+  border-radius: var(--raio);
+  background: var(--campo);
+  font-size: 38px;
+  line-height: 1;
+  opacity: 0.55;
+}
+
+.botao-temperatura[aria-checked="true"] {
+  border: 2.5px solid var(--lima);
+  background: #1d1d1d;
+  opacity: 1;
+}
+
 .botoes-passo {
   display: flex;
   flex-direction: column;
@@ -430,6 +471,11 @@ main {
   .tela-qr .botao-grande {
     min-height: 60px;
   }
+}
+
+.campo-observacao {
+  align-self: stretch;
+  text-align: left;
 }
 
 .qr-erro {

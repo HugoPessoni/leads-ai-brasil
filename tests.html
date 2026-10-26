@@ -214,6 +214,7 @@
           email: ' Anderson@ACME.com ',
           autorizou: true,
           proximoPasso: 'reuniao',
+          temperatura: 'quente',
           observacao: ' quer demo '
         };
         for (var k in extra) base[k] = extra[k];
@@ -233,6 +234,7 @@
           celular: '(11) 98765-4321',
           email: 'anderson@acme.com',
           proximo_passo: 'reuniao',
+          temperatura: 'quente',
           observacao: 'quer demo',
           autorizou_contato: true,
           origem_nome: 'qr',
@@ -242,6 +244,10 @@
       teste('montarLead digitado, sem crachá e sem celular', function () {
         var lead = Core.montarLead(dadosLead({ cracha: null, origemNome: 'manual', celular: '', proximoPasso: 'contato' }));
         igual([lead.cracha_codigo, lead.cracha_tipo, lead.celular, lead.origem_nome, lead.proximo_passo], ['', '', '', 'manual', 'contato']);
+      });
+      teste('montarLead guarda a temperatura (frio) e aceita lead antigo sem temperatura', function () {
+        igual(Core.montarLead(dadosLead({ temperatura: 'frio' })).temperatura, 'frio');
+        igual(Core.montarLead(dadosLead({ temperatura: undefined })).temperatura, '');
       });
 
       /* ---------- Datas e confirmação do envio ---------- */

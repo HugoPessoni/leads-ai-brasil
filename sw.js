@@ -2,7 +2,7 @@
 // Ao publicar qualquer mudança de código, aumente VERSAO: o celular baixa tudo de novo na próxima abertura.
 // Mudanças só no config.js não precisam disso (ele é importado abaixo e o navegador percebe sozinho).
 
-var VERSAO = '1';
+var VERSAO = '2';
 var CACHE = 'leads-' + VERSAO;
 
 importScripts('config.js');

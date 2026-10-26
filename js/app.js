@@ -23,8 +23,9 @@
     voluntario: lerVoluntario(),
     cracha: null, // resultado de Core.parseBadge da última leitura
     origemNome: 'manual',
+    temperatura: null, // chave de config.temperaturas
     // Lead já salvo que ainda pode ser corrigido ("Trocar opção" na tela do QR), até tocar em "Novo lead".
-    leadAberto: null // { id, capturadoEm }
+    leadAberto: null // { id, capturadoEm, lead }
   };
 
   function $(id) {
@@ -227,9 +228,38 @@
     });
     estado.cracha = null;
     estado.origemNome = 'manual';
+    escolherTemperatura(null);
   }
 
   /* ---------- Tela 3: próximo passo ---------- */
+
+  function montarBotoesTemperatura() {
+    var container = $('temperatura');
+    Object.keys(config.temperaturas).forEach(function (chave) {
+      var temperatura = config.temperaturas[chave];
+      var botao = document.createElement('button');
+      botao.type = 'button';
+      botao.className = 'botao-temperatura';
+      botao.setAttribute('role', 'radio');
+      botao.setAttribute('aria-checked', 'false');
+      botao.setAttribute('aria-label', temperatura.nome);
+      botao.setAttribute('data-temperatura', chave);
+      botao.textContent = temperatura.icone;
+      botao.addEventListener('click', function () {
+        escolherTemperatura(chave);
+      });
+      container.appendChild(botao);
+    });
+  }
+
+  // chave null limpa a escolha (novo lead).
+  function escolherTemperatura(chave) {
+    estado.temperatura = chave;
+    $('temperatura').removeAttribute('aria-invalid');
+    $('temperatura').querySelectorAll('.botao-temperatura').forEach(function (botao) {
+      botao.setAttribute('aria-checked', String(botao.getAttribute('data-temperatura') === chave));
+    });
+  }
 
   function montarBotoesPasso() {
     var container = $('botoes-passo');
@@ -252,6 +282,11 @@
    * O envio deste lead espera o "Novo lead"; os outros pendentes seguem em segundo plano.
    */
   function escolherPasso(chave) {
+    if (!estado.temperatura) {
+      $('temperatura').setAttribute('aria-invalid', 'true');
+      avisar('Escolha a temperatura (' + iconesDeTemperatura() + ') antes do próximo passo.');
+      return;
+    }
     if (!estado.leadAberto) estado.leadAberto = { id: Fila.novoId(), capturadoEm: new Date() };
     var lead = Core.montarLead({
       id: estado.leadAberto.id,
@@ -266,6 +301,7 @@
       email: $('lead-email').value,
       autorizou: $('lead-autorizou').checked,
       proximoPasso: chave,
+      temperatura: estado.temperatura,
       observacao: $('lead-observacao').value
     });
     try {
@@ -275,16 +311,24 @@
       avisar('Não foi possível salvar no celular. Anote os dados e avise a coordenação.');
       return;
     }
+    estado.leadAberto.lead = lead;
 
     atualizarBarra();
     mostrarQr(config.proximosPassos[chave]);
     Sync.enviar();
   }
 
+  function iconesDeTemperatura() {
+    return Object.keys(config.temperaturas).map(function (chave) {
+      return config.temperaturas[chave].icone;
+    }).join(' ');
+  }
+
   // Encerra o lead da tela do QR: a partir daqui ele não muda mais e já pode ir para a planilha.
   // Retorna true se havia um lead aberto.
   function fecharLead() {
     if (!estado.leadAberto) return false;
+    salvarObservacao();
     estado.leadAberto = null;
     Sync.liberar();
     return true;
@@ -310,6 +354,28 @@
     $('qr-erro').hidden = false;
   }
 
+  // A observação é escrita na tela do QR, depois da conversa. Vai para o lead aberto enquanto o
+  // voluntário digita (com uma pequena espera), para não se perder se o app fechar antes do "Novo lead".
+  var temporizadorObservacao;
+  function observacaoDigitada() {
+    clearTimeout(temporizadorObservacao);
+    temporizadorObservacao = setTimeout(salvarObservacao, 400);
+  }
+
+  function salvarObservacao() {
+    clearTimeout(temporizadorObservacao);
+    var aberto = estado.leadAberto;
+    if (!aberto || !aberto.lead) return;
+    var observacao = $('lead-observacao').value.trim();
+    if (aberto.lead.observacao === observacao) return;
+    aberto.lead.observacao = observacao;
+    try {
+      Fila.salvar(aberto.lead);
+    } catch (erro) {
+      avisar('Não foi possível salvar a observação no celular.');
+    }
+  }
+
   // Baixa as imagens dos QRs na abertura, para a tela 4 aparecer na hora.
   function preCarregarQrs() {
     Object.keys(config.proximosPassos).forEach(function (chave) {
@@ -328,6 +394,7 @@
   function iniciar() {
     document.title = 'Leads · ' + config.evento;
     $('nome-evento').textContent = config.evento;
+    montarBotoesTemperatura();
     montarBotoesPasso();
     atualizarBarra();
 
@@ -355,6 +422,8 @@
       mostrarTela('passo');
     });
     $('qr-imagem').addEventListener('error', qrNaoCarregou);
+    $('lead-observacao').addEventListener('input', observacaoDigitada);
+    $('lead-observacao').addEventListener('blur', salvarObservacao);
     preCarregarQrs();
 
     $('barra-status').addEventListener('click', enviarAgora);

@@ -116,9 +116,10 @@ Uma página com quatro telas; depois do primeiro uso, o voluntário só passa pe
    - "Marcar uma reunião" grava `proximo_passo = reuniao`.
    - "Receber nosso contato" grava `proximo_passo = contato`.
    - Cada botão tem uma cor fixa, para o voluntário reconhecer pelo treinamento; o texto é neutro para quem está olhando a tela.
-   - Campo opcional "Observação", de uma linha, acima dos botões.
+   - Antes dos botões, a temperatura do lead, obrigatória: três ícones (🔥 quente, 💨 morno, ❄️ frio), sem texto, porque a pessoa abordada pode ver a tela. Ícones e nomes ficam no `config.js`.
    - Ao tocar no botão, o lead é salvo no celular na hora, sem travar a tela.
 4. **QR para a empresa:** tela cheia com a imagem do QR do passo escolhido (agendamento ou contato), um título curto vindo do `config.js` e o botão "Novo lead", que volta ao cadastro com os campos limpos.
+   - Campo opcional "Observação" (até 500 caracteres), abaixo do QR: o voluntário resume a conversa depois que a pessoa escaneou. O texto vai para o lead aberto enquanto ele digita.
    - Link "Trocar opção": volta à tela 3 com os dados preenchidos. Escolher de novo corrige o mesmo lead (mesmo `id` e horário), sem criar outro.
    - Por isso o lead da tela do QR só vai para a planilha ao tocar em "Novo lead" (ou ao trocar de voluntário). Se o app fechar antes, ele é enviado na próxima abertura.
 
@@ -190,23 +191,37 @@ Aba Leads, nesta ordem (a ordem fica numa constante no `Code.gs`, e as fórmulas
 | autorizou\_contato | Sim | checkbox |
 | origem\_nome | QR ou Manual | app |
 | dispositivo | código curto do celular | app |
+| temperatura | Quente, Morno ou Frio | ícone da tela 3 (coluna acrescentada no fim, para não desalinhar as linhas antigas) |
 
-Aba Dashboard, criada pelo `setup()`:
+Aba Dashboard (visão geral), criada pelo `setup()`:
 
 | KPI | Como calcular |
 | --- | --- |
 | Total de leads | contagem da coluna id |
+| Último lead recebido | maior recebido\_em; confirma que o envio está chegando |
+| Horário de pico | hora com mais leads no evento todo |
 | Reunião × Contato | quantidade e % de cada próximo passo |
-| Ranking de voluntários | QUERY por voluntário: Reunião, Contato, Total e % reunião, ordenado pelo total |
-| Leads por hora | QUERY por data e hora; mostra os horários de pico do estande |
-| Leads por dia | QUERY por data, se o evento tiver mais de um dia |
+| Temperatura | quantidade e % de quente, morno, frio e sem temperatura |
 | Qualidade do contato | % com celular, % com e-mail, % com os dois |
 | Leitura do crachá | % por QR × manual; mostra se o leitor está funcionando |
 | Tipo de crachá | DOI × FD, cruzado com o próximo passo |
 | Duplicados | crachás com mais de um cadastro |
-| Último lead recebido | maior recebido\_em; confirma que o envio está chegando |
+| Por dia | por data: leads, reunião, contato, quente, morno, frio e horário de pico |
+| Leads por hora | QUERY por hora com uma coluna por dia; compara os horários de pico dos dias |
 
-Gráficos criados pelo script: pizza de Reunião × Contato, barras do ranking de voluntários e colunas de leads por hora.
+Aba Ranking (leaderboard e métricas pessoais), criada pelo `setup()`:
+
+| Coluna | Como calcular |
+| --- | --- |
+| Posição | ordem por leads (empate: mais quentes), com 🥇 🥈 🥉 |
+| Leads, 🔥 Quentes, Reuniões, % reunião | contagens por voluntário |
+| Dia 1, Dia 2 | leads do voluntário no primeiro e no segundo dia com leads |
+| Evolução | Dia 2 comparado ao Dia 1, em % |
+| Horário de pico | hora com mais leads daquele voluntário |
+
+Gráficos criados pelo script: pizzas de Reunião × Contato e de temperatura, colunas de leads por hora (uma cor por dia), barras de leads por voluntário e colunas Dia 1 × Dia 2 por voluntário.
+
+As fórmulas são escritas com a planilha em en\_US e a localidade original volta em seguida (planilha em português lê ponto e vírgula). "Leads > Recriar Dashboard" refaz as duas abas e avisa quais células deram erro.
 
 ## Configuração (config.js)
 

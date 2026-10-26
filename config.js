@@ -20,6 +20,13 @@ self.APP_CONFIG = {
       cor: '#E4EF3A'
     }
   },
+  // Temperatura do lead, escolhida antes do QR. Só o ícone aparece na tela (a pessoa abordada pode ver).
+  // As chaves (quente, morno, frio) precisam ser as mesmas do Code.gs.
+  temperaturas: {
+    quente: { icone: '🔥', nome: 'Quente' },
+    morno: { icone: '💨', nome: 'Morno' },
+    frio: { icone: '❄️', nome: 'Frio' }
+  },
   exigirAutorizacao: true,
   intervaloSyncSegundos: 30,
   loteMaximo: 20
