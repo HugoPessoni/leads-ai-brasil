@@ -134,9 +134,80 @@ function onOpen() {
     .addToUi();
 }
 
-// Implementado na fase 9.
+/* ---------- Backup (plano B) ---------- */
+
+var PREFIXO_BACKUP = 'LEADS1:';
+var ESPERA_LOCK_IMPORTACAO_MS = 30000;
+
+// Caixa para colar o texto "LEADS1:..." ou escolher o arquivo .txt exportado pelo app.
+var HTML_IMPORTAR = [
+  '<style>',
+  'body{font-family:Arial,sans-serif;font-size:14px;margin:0}',
+  'textarea{width:100%;height:170px;box-sizing:border-box;font-family:monospace;font-size:12px}',
+  '.linha{margin:10px 0}button{padding:8px 18px;font-size:14px}',
+  '#resultado{margin-top:12px;font-weight:bold;white-space:pre-wrap}',
+  '</style>',
+  '<p>Escolha o arquivo <b>.txt</b> recebido do voluntário ou cole o texto que começa com <b>LEADS1:</b>.',
+  ' Leads que já estão na planilha não são duplicados.</p>',
+  '<div class="linha"><input type="file" id="arquivo" accept=".txt,text/plain"></div>',
+  '<textarea id="texto" placeholder="LEADS1:..."></textarea>',
+  '<div class="linha"><button id="importar">Importar</button></div>',
+  '<div id="resultado"></div>',
+  '<script>',
+  'var arquivo=document.getElementById("arquivo"),texto=document.getElementById("texto"),',
+  'botao=document.getElementById("importar"),resultado=document.getElementById("resultado");',
+  'arquivo.onchange=function(){var f=arquivo.files[0];if(!f)return;var leitor=new FileReader();',
+  'leitor.onload=function(){texto.value=leitor.result;};leitor.readAsText(f);};',
+  'botao.onclick=function(){botao.disabled=true;resultado.textContent="Importando…";',
+  'google.script.run.withSuccessHandler(function(m){resultado.textContent=m;botao.disabled=false;})',
+  '.withFailureHandler(function(e){resultado.textContent="Erro: "+e.message;botao.disabled=false;})',
+  '.importarTextoDeBackup(texto.value);};',
+  '</script>'
+].join('\n');
+
+// Menu Leads > Importar backup.
 function importarBackup() {
-  SpreadsheetApp.getUi().alert('A importação de backup ainda não foi implementada (fase 9).');
+  var html = HtmlService.createHtmlOutput(HTML_IMPORTAR).setWidth(560).setHeight(430);
+  SpreadsheetApp.getUi().showModalDialog(html, 'Importar backup de leads');
+}
+
+/**
+ * Chamado pela caixa de importação. Grava os leads do backup que ainda não estão na planilha
+ * (mesma regra do doPost: o id decide) e devolve um resumo para mostrar na caixa.
+ */
+function importarTextoDeBackup(texto) {
+  var leads = lerBackup_(texto);
+  var lock = LockService.getScriptLock();
+  if (!lock.tryLock(ESPERA_LOCK_IMPORTACAO_MS)) {
+    throw new Error('A planilha está ocupada recebendo leads. Tente de novo em alguns segundos.');
+  }
+  var resultado;
+  try {
+    resultado = gravarLeads_(leads);
+  } finally {
+    lock.releaseLock();
+  }
+  var semId = leads.length - resultado.gravados.length - resultado.ignorados.length;
+  return resultado.gravados.length + ' lead(s) importado(s); ' +
+    resultado.ignorados.length + ' já estava(m) na planilha' +
+    (semId > 0 ? '; ' + semId + ' sem id, ignorado(s)' : '') + '.';
+}
+
+// "LEADS1:" + Base64 do JSON em UTF-8. Espaços e quebras de linha no meio são ignorados.
+function lerBackup_(texto) {
+  var limpo = String(texto || '').replace(/\s+/g, '');
+  if (limpo.indexOf(PREFIXO_BACKUP) !== 0) {
+    throw new Error('O texto do backup precisa começar com ' + PREFIXO_BACKUP);
+  }
+  var leads;
+  try {
+    var json = Utilities.newBlob(Utilities.base64Decode(limpo.slice(PREFIXO_BACKUP.length))).getDataAsString('UTF-8');
+    leads = JSON.parse(json);
+  } catch (erro) {
+    throw new Error('O texto do backup está incompleto ou corrompido. Exporte de novo no celular.');
+  }
+  if (!Array.isArray(leads)) throw new Error('O texto do backup não tem uma lista de leads.');
+  return leads;
 }
 
 function recriarDashboard() {

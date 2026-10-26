@@ -114,12 +114,54 @@
   function acaoDoMenu(acao) {
     fecharMenu();
     if (acao === 'enviar') enviarAgora();
-    if (acao === 'backup') avisar('O backup entra na fase 9.');
+    if (acao === 'backup') exportarBackup();
     if (acao === 'trocar') {
       if (fecharLead()) limparCadastro();
       $('voluntario-nome').value = estado.voluntario;
       mostrarTela('identificacao');
     }
+  }
+
+  /* ---------- Backup (plano B) ---------- */
+
+  /**
+   * Todos os leads deste celular no texto "LEADS1:..." (a planilha importa em Leads > Importar backup).
+   * Vai como arquivo .txt pelo compartilhamento do celular: o WhatsApp corta mensagens de texto longas.
+   * Sem compartilhamento de arquivo, copia o texto para colar no WhatsApp ou no e-mail.
+   */
+  function exportarBackup() {
+    var leads = Fila.todos();
+    if (!leads.length) {
+      avisar('Ainda não há leads neste celular.');
+      return;
+    }
+    var texto = Core.codificarBackup(leads);
+    var resumo = leads.length === 1 ? '1 lead' : leads.length + ' leads';
+    var arquivo = typeof File === 'function'
+      ? new File([texto], Core.nomeDoBackup(estado.voluntario, new Date()), { type: 'text/plain' })
+      : null;
+
+    if (arquivo && navigator.canShare && navigator.canShare({ files: [arquivo] })) {
+      navigator.share({ files: [arquivo], title: 'Backup de leads' }).then(function () {
+        avisar('Backup com ' + resumo + ' compartilhado.');
+      }, function (erro) {
+        if (!erro || erro.name !== 'AbortError') copiarBackup(texto, resumo);
+      });
+      return;
+    }
+    copiarBackup(texto, resumo);
+  }
+
+  function copiarBackup(texto, resumo) {
+    if (!navigator.clipboard || !navigator.clipboard.writeText) {
+      avisar('Este navegador não deixa exportar o backup. Use o app instalado no celular.');
+      return;
+    }
+    navigator.clipboard.writeText(texto).then(function () {
+      avisar('Backup com ' + resumo + ' copiado. Cole no WhatsApp ou no e-mail da coordenação.');
+    }, function () {
+      avisar('Não foi possível copiar o backup. Tente de novo.');
+    });
   }
 
   /* ---------- Tela 1: identificação ---------- */

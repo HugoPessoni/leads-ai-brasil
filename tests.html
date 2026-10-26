@@ -271,6 +271,40 @@
         igual(Core.idsConfirmados({ ok: true }), []);
       });
 
+      /* ---------- Backup ---------- */
+
+      var leadsDoBackup = [
+        Core.montarLead(dadosLead({})),
+        Core.montarLead(dadosLead({ id: 'id-2', nome: 'MARIA DA CONCEIÇÃO', observacao: 'Ótima conversa 🔥 — voltar amanhã', temperatura: 'quente' }))
+      ];
+
+      teste('Backup começa com LEADS1: e volta igual (acentos e emoji)', function () {
+        var texto = Core.codificarBackup(leadsDoBackup);
+        igual(texto.indexOf('LEADS1:'), 0);
+        igual(Core.decodificarBackup(texto), leadsDoBackup);
+      });
+      teste('Backup aceita quebras de linha e espaços no meio (WhatsApp, e-mail)', function () {
+        var texto = Core.codificarBackup(leadsDoBackup);
+        var quebrado = '  ' + texto.slice(0, 30) + '\n' + texto.slice(30, 80) + ' \r\n' + texto.slice(80) + '\n';
+        igual(Core.decodificarBackup(quebrado), leadsDoBackup);
+      });
+      teste('Backup inválido retorna null', function () {
+        igual(Core.decodificarBackup(''), null);
+        igual(Core.decodificarBackup('olá'), null);
+        igual(Core.decodificarBackup('LEADS1:isso não é base64'), null);
+        igual(Core.decodificarBackup(Core.codificarBackup(leadsDoBackup).slice(0, 60)), null);
+        igual(Core.decodificarBackup('LEADS1:' + btoa('{"nao":"lista"}')), null);
+      });
+      teste('Backup com muitos leads (500)', function () {
+        var muitos = [];
+        for (var i = 0; i < 500; i++) muitos.push(Core.montarLead(dadosLead({ id: 'id-' + i })));
+        igual(Core.decodificarBackup(Core.codificarBackup(muitos)).length, 500);
+      });
+      teste('Nome do arquivo de backup sem acentos nem espaços', function () {
+        igual(Core.nomeDoBackup('João da Silva', new Date(2026, 9, 28, 14, 32)), 'backup-leads-joao-da-silva-20261028-1432.txt');
+        igual(Core.nomeDoBackup('', new Date(2026, 9, 29, 9, 5)), 'backup-leads-voluntario-20261029-0905.txt');
+      });
+
       /* ---------- Resultado ---------- */
 
       var falhas = resultados.filter(function (r) { return !r.ok; }).length;

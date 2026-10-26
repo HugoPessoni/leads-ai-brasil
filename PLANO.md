@@ -141,6 +141,8 @@ Todo lead é gravado no celular antes de qualquer envio; a planilha recebe uma c
   - O `sw.js` importa o `config.js` (por isso ele usa `self.APP_CONFIG`) para guardar as imagens dos QRs; mudar só o `config.js` já atualiza o app.
   - No iPhone, o app instalado na tela inicial guarda os dados separados do Safari: instalar antes do evento e usar só o ícone instalado.
 - **Exportar backup (plano B):** gera um texto com todos os leads deste celular, no formato `LEADS1:` seguido do JSON em Base64 (codificado em UTF-8 para preservar acentos). Abre o compartilhamento nativo do celular (`navigator.share`) ou copia para a área de transferência, para mandar por WhatsApp ou e-mail. A planilha importa esse texto pelo menu "Leads > Importar backup", sem duplicar.
+  - O texto vai dentro de um arquivo `backup-leads-<voluntario>-<data>.txt`, porque o WhatsApp corta mensagens de texto longas. Sem compartilhamento de arquivo, o app copia o texto.
+  - A caixa "Importar backup" aceita escolher o arquivo .txt ou colar o texto (quebras de linha no meio são ignoradas) e mostra quantos leads entraram e quantos já estavam na planilha.
 
 ## Backend: Google Planilha + Apps Script
 

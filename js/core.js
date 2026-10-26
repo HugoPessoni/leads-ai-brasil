@@ -169,6 +169,48 @@
     return gravados.concat(ignorados);
   }
 
+  var PREFIXO_BACKUP = 'LEADS1:';
+
+  // Texto do backup: "LEADS1:" + JSON dos leads em Base64 (UTF-8, para manter acentos e emojis).
+  function codificarBackup(leads) {
+    var bytes = new TextEncoder().encode(JSON.stringify(leads));
+    var binario = '';
+    for (var i = 0; i < bytes.length; i += 0x8000) {
+      binario += String.fromCharCode.apply(null, bytes.subarray(i, i + 0x8000));
+    }
+    return PREFIXO_BACKUP + btoa(binario);
+  }
+
+  // Lê o texto do backup, ignorando espaços e quebras de linha que o WhatsApp ou o e-mail possam inserir.
+  // Retorna a lista de leads, ou null se o texto não for um backup válido. (A planilha lê do mesmo jeito.)
+  function decodificarBackup(texto) {
+    var limpo = String(texto || '').replace(/\s+/g, '');
+    if (limpo.indexOf(PREFIXO_BACKUP) !== 0) return null;
+    try {
+      var binario = atob(limpo.slice(PREFIXO_BACKUP.length));
+      var bytes = Uint8Array.from(binario, function (letra) {
+        return letra.charCodeAt(0);
+      });
+      var leads = JSON.parse(new TextDecoder('utf-8', { fatal: true }).decode(bytes));
+      return Array.isArray(leads) ? leads : null;
+    } catch (erro) {
+      return null;
+    }
+  }
+
+  // "backup-leads-joao-da-silva-20261028-1432.txt": sem acentos nem espaços, para qualquer app aceitar.
+  function nomeDoBackup(voluntario, agora) {
+    var nome = String(voluntario || 'voluntario')
+      .normalize('NFD')
+      .replace(/[̀-ͯ]/g, '')
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-+|-+$/g, '') || 'voluntario';
+    var data = agora.getFullYear() + doisDigitos(agora.getMonth() + 1) + doisDigitos(agora.getDate()) +
+      '-' + doisDigitos(agora.getHours()) + doisDigitos(agora.getMinutes());
+    return 'backup-leads-' + nome + '-' + data + '.txt';
+  }
+
   global.Core = {
     parseBadge: parseBadge,
     formatarNome: formatarNome,
@@ -179,6 +221,9 @@
     montarLead: montarLead,
     mesmoDia: mesmoDia,
     formatarHorario: formatarHorario,
-    idsConfirmados: idsConfirmados
+    idsConfirmados: idsConfirmados,
+    codificarBackup: codificarBackup,
+    decodificarBackup: decodificarBackup,
+    nomeDoBackup: nomeDoBackup
   };
 })(window);
