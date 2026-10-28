@@ -13,7 +13,7 @@ Decisões já tomadas:
 - O backend é uma Planilha Google com Apps Script.
 - A classificação aparece na tela como uma pergunta neutra sobre o próximo passo ("Marcar uma reunião" ou "Receber nosso contato"), porque a pessoa abordada pode ver a tela. O treinamento ensina o critério: empresa madura vai para reunião; startup ou empresa em estágio inicial vai para contato.
 - O "código para copiar e mandar" da ideia original vira o backup de emergência, não o fluxo principal.
-- Os QRs mostrados para a empresa já existem como imagens prontas, uma por próximo passo. O app só exibe a imagem indicada no `config.js`; até as imagens finais chegarem, usa imagens de mockup.
+- Os QRs mostrados para a empresa já existem como imagens prontas, uma por próximo passo. O app só exibe a imagem indicada no `config.js`; as imagens finais entraram no lugar dos mockups em 28/10.
 
 ## Instruções para o Claude Code
 
@@ -286,13 +286,13 @@ Rode tudo nos celulares que os voluntários vão usar, com crachás reais do eve
 - [x] Fechar o navegador com leads pendentes, reabrir: continuam lá e são enviados (ensaio geral)
 - [x] Mesmo crachá duas vezes: aparece o aviso de duplicado (ensaio geral)
 - [x] Sem celular e sem e-mail: o app não deixa salvar (fase 3; só celular, só e-mail ou os dois seguem)
-- [ ] QR de reunião abre a agenda; QR de contato abre o link certo
+- [x] QR de reunião abre a agenda; QR de contato abre o link certo (lidos na tela do app; a agenda do Outlook abre sem login; link do bot confirmado)
 - [x] Dois voluntários enviando ao mesmo tempo: nenhuma linha perdida (3 envios simultâneos de 10 leads na planilha real: 30 gravados; reenvio: 30 ignorados)
 - [x] Dashboard confere com a contagem manual (fase 8, com 20 leads fictícios)
 - [x] Exportar backup no celular e importar na planilha sem duplicar (fase 9)
 - [ ] Uso contínuo por uma sessão longa: checar bateria e levar carregadores portáteis
 - [ ] App instalado na tela inicial de cada voluntário antes do evento (no iPhone, usar só o ícone instalado: ele não enxerga os dados do Safari)
-- [ ] Imagens reais dos QRs de reunião e de contato no lugar dos mockups (`img/`)
+- [x] Imagens reais dos QRs de reunião e de contato no lugar dos mockups (`img/`, com margem branca em volta)
 - [ ] Antes do evento: apagar as linhas de teste da aba Leads e zerar o app nos celulares usados em testes
 
 ## Pendências para preencher antes de começar
@@ -301,8 +301,8 @@ Sete respostas destravam o `config.js` e a fase 1.
 
 - [x] Nome do evento e datas: AI Experience, 28 e 29 de outubro de 2026
 - [x] Lista de voluntários: não há; cada voluntário digita o próprio nome no primeiro uso
-- [x] Link de agendamento para o QR de reunião: QR já pronto, a imagem será enviada depois (mockup até lá)
-- [x] Link para o QR de contato: QR já pronto, a imagem será enviada depois (mockup até lá)
+- [x] Link de agendamento para o QR de reunião: agenda do Outlook (Prospecção CEIA & AKCIT - UFG), imagem em `img/qr-reuniao.png`
+- [x] Link para o QR de contato: chat do bot (transformit.matchit.com.br), imagem em `img/qr-contato.png`
 - [x] Manter o campo Empresa? Sim, opcional
 - [x] O que significam os prefixos DOI e FD? Ainda não se sabe; tratados só como código do crachá
 - [x] Conta Google dona da planilha e do Apps Script: conta pessoal do dono do projeto
