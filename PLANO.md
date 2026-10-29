@@ -126,7 +126,14 @@ Uma página com quatro telas; depois do primeiro uso, o voluntário só passa pe
 
 Em todas as telas, uma barra fixa no topo mostra o nome do voluntário, quantos leads ele cadastrou hoje neste celular e o status de envio ("Tudo enviado" ou "3 pendentes"). Tocar no status força o envio.
 
-O menu tem três itens: Enviar pendentes, Exportar backup, Trocar voluntário.
+O menu tem quatro itens: Leaderboard, Enviar pendentes, Exportar backup, Trocar voluntário.
+
+**Leaderboard:** abre por cima da tela atual (o lead em andamento fica como estava) e mostra quantos leads cada voluntário tem na planilha, no total do evento, na mesma ordem da aba Ranking (mais leads; empate, mais quentes; depois nome), com 🥇 🥈 🥉, uma barra proporcional ao líder e o nome do voluntário do celular destacado com "Você".
+
+- Busca a planilha ao abrir e a cada 30 segundos enquanto está aberto (`intervaloLeaderboardSegundos` no `config.js`); para ao fechar e quando o app vai para segundo plano.
+- Conta só o que já chegou à planilha: se o celular tem leads pendentes, um aviso diz quantos.
+- Sem internet, mostra o último ranking recebido (guardado em `leaderboard_v1`) e de quando ele é.
+- Os nomes aparecem como cada voluntário digitou. Só nomes e totais saem da planilha, nada dos leads.
 
 ## Salvamento no celular e sincronização
 
@@ -154,19 +161,19 @@ Funções:
 
 - `setup()`: roda uma vez, manualmente. Cria as abas Leads (com cabeçalho), Dashboard (fórmulas e gráficos) e Config (guarda o token). Define o fuso da planilha como America/Sao\_Paulo. Se uma aba já existir, não apaga os dados.
 - `doPost(e)`: lê `e.postData.contents` como `{ token, leads: [...] }`. Recusa token errado. Usa `LockService` para dois envios simultâneos não se atropelarem. Compara os `id`s com a coluna A, grava só os novos de uma vez com `setValues` e responde `{ ok: true, gravados: [...], ignorados: [...] }` em JSON via `ContentService`.
-- `doGet()`: responde só `{ ok: true, versao }`, para testar se está no ar. Nunca devolve leads.
+- `doGet(e)`: sem parâmetros, responde `{ ok: true, versao }`, para testar se está no ar. Com `?acao=ranking&token=...`, responde `{ ok: true, voluntarios: [{ nome, leads }] }` para o leaderboard do app. Nunca devolve leads.
 - `onOpen()`: cria o menu Leads com "Importar backup" (abre uma caixa para colar o texto `LEADS1:` e grava o que faltar) e "Recriar Dashboard".
 - Colunas calculadas no servidor a partir de `capturado_em`: `data` e `hora`. O horário vem do celular, não da chegada, porque um lead pode ser enviado horas depois.
 - Fórmulas escritas pelo script usam nomes de função em inglês e vírgula como separador, mesmo com a planilha em português.
 
 Publicação: Implantar > Nova implantação > App da Web, "Executar como: eu", "Quem pode acessar: qualquer pessoa". A URL terminada em `/exec` vai para o `config.js`. Para atualizar o código depois, use Gerenciar implantações > Editar > Nova versão; a URL não muda.
 
-Segurança: o repositório é público, então a URL e o token ficam visíveis. O token só barra envios aleatórios. O risco aceito é alguém inserir linhas falsas; ninguém consegue ler os leads por essa URL. O servidor também limita cada campo a 200 caracteres e cada requisição a 50 leads.
+Segurança: o repositório é público, então a URL e o token ficam visíveis. O token só barra envios aleatórios. O risco aceito é alguém inserir linhas falsas ou ver o leaderboard (nomes dos voluntários e quantos leads cada um tem); ninguém consegue ler os leads por essa URL. O servidor também limita cada campo a 200 caracteres e cada requisição a 50 leads.
 
 A planilha e o Apps Script estão numa conta Google pessoal (decisão do dono do projeto). Para proteger essa conta:
 
 - O script declara `@OnlyCurrentDoc` e só tem acesso a esta planilha, não às outras planilhas da conta.
-- O repositório não guarda nenhuma credencial da conta: só a URL `/exec` e o token, que permitem apenas inserir linhas.
+- O repositório não guarda nenhuma credencial da conta: só a URL `/exec` e o token, que permitem apenas inserir linhas e ler o leaderboard.
 - Os commits usam o e-mail `noreply` do GitHub, não o e-mail pessoal.
 - Depois do evento: arquivar a implantação (Implantar > Gerenciar implantações > Arquivar), o que derruba a URL, e remover o acesso do script em myaccount.google.com > Segurança > Apps de terceiros.
 
@@ -227,6 +234,8 @@ Gráficos criados pelo script: pizzas de Reunião × Contato e de temperatura, c
 
 As fórmulas são escritas com a planilha em en\_US e a localidade original volta em seguida (planilha em português lê ponto e vírgula). "Leads > Recriar Dashboard" refaz as duas abas e avisa quais células deram erro.
 
+Uma cópia anterior do `Code.gs` foi colada no editor com a acentuação quebrada e gravou "Reunião" como "Reuni√£o". O "Recriar Dashboard" corrige esse texto na coluna proximo\_passo antes de refazer as fórmulas e diz quantas linhas mudou. Para copiar o `Code.gs` sem quebrar acentos no Mac: `LC_ALL=en_US.UTF-8 pbcopy < apps-script/Code.gs`.
+
 ## Configuração (config.js)
 
 Tudo que muda de um evento para outro fica neste arquivo; os valores abaixo são exemplos a substituir.
@@ -252,6 +261,7 @@ self.APP_CONFIG = {
   },
   exigirAutorizacao: true,
   intervaloSyncSegundos: 30,
+  intervaloLeaderboardSegundos: 30,
   loteMaximo: 20
 };
 ```
@@ -294,6 +304,7 @@ Rode tudo nos celulares que os voluntários vão usar, com crachás reais do eve
 - [ ] App instalado na tela inicial de cada voluntário antes do evento (no iPhone, usar só o ícone instalado: ele não enxerga os dados do Safari)
 - [x] Imagens reais dos QRs de reunião e de contato no lugar dos mockups (`img/`, com margem branca em volta)
 - [ ] Antes do evento: apagar as linhas de teste da aba Leads e zerar o app nos celulares usados em testes
+- [ ] Leaderboard no iPhone e no Android: abre pelo menu, mostra os totais da planilha, destaca "Você" e atualiza sozinho (testado no navegador com os 120 leads exportados em 28/10; falta o Apps Script novo no ar e o teste nos celulares)
 
 ## Pendências para preencher antes de começar
 

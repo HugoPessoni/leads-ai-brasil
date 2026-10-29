@@ -7,8 +7,10 @@
   var Scanner = window.Scanner;
   var Fila = window.Fila;
   var Sync = window.Sync;
+  var Ranking = window.Ranking;
   var CHAVE_VOLUNTARIO = 'voluntario_v1';
   var CHAVE_DICA_INSTALAR = 'dica_instalar_v1';
+  var CHAVE_LEADERBOARD = 'leaderboard_v1';
 
   // Elemento do formulário de cadastro de cada nome usado por Core.validarCadastro.
   // "contato" é o grupo celular + e-mail: o evento input dos dois campos chega até ele.
@@ -114,6 +116,7 @@
 
   function acaoDoMenu(acao) {
     fecharMenu();
+    if (acao === 'leaderboard') abrirLeaderboard();
     if (acao === 'enviar') enviarAgora();
     if (acao === 'backup') exportarBackup();
     if (acao === 'trocar') {
@@ -121,6 +124,122 @@
       $('voluntario-nome').value = estado.voluntario;
       mostrarTela('identificacao');
     }
+  }
+
+  /* ---------- Leaderboard ---------- */
+
+  // Último ranking recebido ({ voluntarios, recebidoEm }): aparece na hora ao abrir, mesmo sem internet,
+  // enquanto o novo não chega.
+  var leaderboard = lerLeaderboardGuardado();
+  var buscandoLeaderboard = false;
+  var temporizadorLeaderboard = null;
+
+  function lerLeaderboardGuardado() {
+    try {
+      var guardado = JSON.parse(localStorage.getItem(CHAVE_LEADERBOARD));
+      return guardado && Array.isArray(guardado.voluntarios) ? guardado : null;
+    } catch (erro) {
+      return null;
+    }
+  }
+
+  function leaderboardAberto() {
+    return !$('leaderboard').hidden;
+  }
+
+  // Abre por cima da tela atual: o lead em andamento e o formulário ficam como estavam.
+  function abrirLeaderboard() {
+    $('leaderboard').hidden = false;
+    $('leaderboard-fechar').focus();
+    mostrarLeaderboard(false);
+    atualizarLeaderboard();
+    clearInterval(temporizadorLeaderboard);
+    temporizadorLeaderboard = setInterval(atualizarLeaderboard, config.intervaloLeaderboardSegundos * 1000);
+  }
+
+  function fecharLeaderboard() {
+    clearInterval(temporizadorLeaderboard);
+    temporizadorLeaderboard = null;
+    $('leaderboard').hidden = true;
+  }
+
+  // Busca na planilha. Com o app em segundo plano não busca; a volta ao app chama de novo.
+  function atualizarLeaderboard() {
+    if (buscandoLeaderboard || document.hidden || !leaderboardAberto()) return;
+    buscandoLeaderboard = true;
+    Ranking.buscar().then(function (voluntarios) {
+      leaderboard = { voluntarios: voluntarios, recebidoEm: new Date().toISOString() };
+      try {
+        localStorage.setItem(CHAVE_LEADERBOARD, JSON.stringify(leaderboard));
+      } catch (erro) {
+        // sem armazenamento: o ranking só fica guardado até fechar o app
+      }
+      mostrarLeaderboard(false);
+    }, function () {
+      mostrarLeaderboard(true);
+    }).then(function () {
+      buscandoLeaderboard = false;
+    });
+  }
+
+  // falhou: a última busca não chegou à planilha; mostra o que estiver guardado e de quando é.
+  function mostrarLeaderboard(falhou) {
+    var lista = $('leaderboard-lista');
+    var status = $('leaderboard-status');
+    lista.textContent = '';
+    if (!leaderboard) {
+      status.textContent = falhou ? 'Sem conexão com a planilha. O app tenta de novo sozinho.' : 'Carregando…';
+      mostrarNotaDoLeaderboard(null);
+      return;
+    }
+
+    var ranking = Core.montarRanking(leaderboard.voluntarios, estado.voluntario);
+    ranking.linhas.forEach(function (linha) {
+      lista.appendChild(itemDoLeaderboard(linha));
+    });
+    var quando = Core.formatarHorario(leaderboard.recebidoEm, new Date());
+    var total = ranking.total === 1 ? '1 lead no evento' : ranking.total + ' leads no evento';
+    status.textContent = (falhou ? 'Sem conexão agora. Dados de ' : 'Atualizado ') + quando + ' · ' + total;
+    mostrarNotaDoLeaderboard(ranking);
+  }
+
+  function itemDoLeaderboard(linha) {
+    var item = elemento('li', 'ranking-item' + (linha.voce ? ' voce' : ''));
+    item.appendChild(elemento('span', 'ranking-posicao', linha.posicao));
+    var nome = elemento('span', 'ranking-nome', linha.nome);
+    if (linha.voce) nome.appendChild(elemento('span', 'ranking-voce', 'Você'));
+    item.appendChild(nome);
+    item.appendChild(elemento('span', 'ranking-leads', String(linha.leads)));
+    var barra = elemento('span', 'ranking-barra');
+    barra.setAttribute('aria-hidden', 'true');
+    var preenchida = elemento('span');
+    preenchida.style.width = Math.round(linha.barra * 100) + '%';
+    barra.appendChild(preenchida);
+    item.appendChild(barra);
+    return item;
+  }
+
+  // textContent, nunca innerHTML: os nomes vêm da planilha.
+  function elemento(tag, classe, texto) {
+    var novo = document.createElement(tag);
+    if (classe) novo.className = classe;
+    if (texto) novo.textContent = texto;
+    return novo;
+  }
+
+  // O ranking só conta o que já chegou à planilha: avisa quando este celular ainda tem leads para enviar.
+  function mostrarNotaDoLeaderboard(ranking) {
+    var pendentes = Sync.estado().pendentes;
+    var nota = '';
+    if (pendentes === 1) {
+      nota = '1 lead deste celular ainda não foi enviado. Ele entra no ranking quando chegar à planilha.';
+    } else if (pendentes > 1) {
+      nota = pendentes + ' leads deste celular ainda não foram enviados. Eles entram no ranking quando chegarem à planilha.';
+    } else if (ranking && estado.voluntario && !ranking.voceAparece) {
+      nota = 'Seu nome aparece aqui quando o seu primeiro lead chegar à planilha.';
+    }
+    $('leaderboard-nota').textContent = nota;
+    $('leaderboard-nota').hidden = !nota;
   }
 
   /* ---------- Backup (plano B) ---------- */
@@ -451,9 +570,12 @@
     $('ler-cracha').addEventListener('click', lerCracha);
     $('leitor-cancelar').addEventListener('click', cancelarLeitura);
     // Saiu do app com a câmera aberta: desliga, para não gastar bateria nem travar a câmera.
+    // Voltou com o leaderboard aberto: busca na hora, sem esperar o próximo intervalo.
     document.addEventListener('visibilitychange', function () {
       if (document.hidden && !$('leitor').hidden) cancelarLeitura();
+      if (!document.hidden) atualizarLeaderboard();
     });
+    $('leaderboard-fechar').addEventListener('click', fecharLeaderboard);
     $('digitar-nome').addEventListener('click', digitarNome);
     $('lead-celular').addEventListener('input', mascararCelular);
     $('form-cadastro').addEventListener('submit', continuarCadastro);
@@ -490,6 +612,10 @@
     });
 
     Sync.aoMudar(atualizarBarra);
+    // Terminou um envio com o leaderboard aberto: os leads que acabaram de chegar já entram no ranking.
+    Sync.aoMudar(function (envio) {
+      if (!envio.enviando && leaderboardAberto()) atualizarLeaderboard();
+    });
     Sync.iniciar();
     prepararOffline();
     prepararDicaDeInstalacao();

@@ -271,6 +271,42 @@
         igual(Core.idsConfirmados({ ok: true }), []);
       });
 
+      /* ---------- Leaderboard ---------- */
+
+      var daPlanilha = [
+        { nome: 'Jorge Vinícius', leads: 17 },
+        { nome: 'Aisha', leads: 16 },
+        { nome: 'Maria Júlia', leads: 8 },
+        { nome: 'Gustavo Leite', leads: 4 }
+      ];
+
+      teste('Leaderboard: medalhas nos três primeiros, depois 4º, na ordem da planilha', function () {
+        igual(Core.montarRanking(daPlanilha, '').linhas.map(function (l) { return l.posicao + ' ' + l.nome; }),
+          ['🥇 Jorge Vinícius', '🥈 Aisha', '🥉 Maria Júlia', '4º Gustavo Leite']);
+      });
+      teste('Leaderboard: barra é a fração do líder e o total soma todos', function () {
+        var ranking = Core.montarRanking(daPlanilha, '');
+        igual(ranking.linhas.map(function (l) { return l.barra; }), [1, 16 / 17, 8 / 17, 4 / 17]);
+        igual(ranking.total, 45);
+      });
+      teste('Leaderboard: marca o voluntário deste celular, sem diferença de maiúsculas e espaços', function () {
+        var ranking = Core.montarRanking(daPlanilha, '  maria   JÚLIA ');
+        igual(ranking.linhas.map(function (l) { return l.voce; }), [false, false, true, false]);
+        igual(ranking.voceAparece, true);
+      });
+      teste('Leaderboard: voluntário sem leads na planilha não aparece', function () {
+        var ranking = Core.montarRanking(daPlanilha, 'Hugo');
+        igual(ranking.voceAparece, false);
+        igual(Core.montarRanking(daPlanilha, '').voceAparece, false);
+      });
+      teste('Leaderboard: lista vazia ou resposta estranha não quebra', function () {
+        igual(Core.montarRanking([], 'Ana'), { linhas: [], total: 0, voceAparece: false });
+        igual(Core.montarRanking(null, 'Ana').total, 0);
+        var estranho = Core.montarRanking([null, { nome: '' }, { nome: 'Ana', leads: '3' }, { nome: 'Bia' }], 'Ana');
+        igual(estranho.linhas.map(function (l) { return [l.nome, l.leads, l.barra]; }), [['Ana', 3, 1], ['Bia', 0, 0]]);
+        igual(estranho.total, 3);
+      });
+
       /* ---------- Backup ---------- */
 
       var leadsDoBackup = [

@@ -8,7 +8,7 @@
 // Pede acesso só a esta planilha, não a todas as planilhas da conta.
 /** @OnlyCurrentDoc */
 
-var VERSAO = '2';
+var VERSAO = '3';
 
 var ABA_LEADS = 'Leads';
 var ABA_DASHBOARD = 'Dashboard';
@@ -85,8 +85,20 @@ function setup() {
 
 /* ---------- Web App ---------- */
 
-function doGet() {
-  return json_({ ok: true, versao: VERSAO });
+// Sem parâmetros: só confirma que está no ar.
+// ?acao=ranking&token=...: leads por voluntário, para o leaderboard do app. Nunca devolve leads.
+function doGet(e) {
+  var parametros = (e && e.parameter) || {};
+  if (parametros.acao !== 'ranking') return json_({ ok: true, versao: VERSAO });
+  try {
+    var token = lerToken_();
+    if (!token || String(parametros.token) !== token) {
+      return json_({ ok: false, erro: 'Token inválido' });
+    }
+    return json_({ ok: true, voluntarios: leadsPorVoluntario_() });
+  } catch (erro) {
+    return json_({ ok: false, erro: String(erro && erro.message ? erro.message : erro) });
+  }
 }
 
 function doPost(e) {
@@ -122,6 +134,44 @@ function doPost(e) {
   } catch (erro) {
     return json_({ ok: false, erro: String(erro && erro.message ? erro.message : erro) });
   }
+}
+
+/* ---------- Leaderboard do app ---------- */
+
+// Só nomes dos voluntários e totais saem daqui, nada dos leads.
+function leadsPorVoluntario_() {
+  var aba = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(ABA_LEADS);
+  var total = aba ? aba.getLastRow() - 1 : 0;
+  if (total < 1) return [];
+  return contarPorVoluntario_(aba.getRange(2, 1, total, COLUNAS.length).getValues());
+}
+
+/**
+ * [{ nome, leads }] na mesma ordem da aba Ranking: mais leads; empate, mais quentes; depois nome.
+ * Linhas sem id ou sem voluntário ficam de fora.
+ */
+function contarPorVoluntario_(linhas) {
+  var colunaId = COLUNAS.indexOf('id');
+  var colunaVoluntario = COLUNAS.indexOf('voluntario');
+  var colunaTemperatura = COLUNAS.indexOf('temperatura');
+  var porNome = {};
+  linhas.forEach(function (linha) {
+    var nome = String(linha[colunaVoluntario]).trim();
+    if (!nome || String(linha[colunaId]).trim() === '') return;
+    var voluntario = porNome[nome] || (porNome[nome] = { nome: nome, leads: 0, quentes: 0 });
+    voluntario.leads++;
+    if (linha[colunaTemperatura] === TEMPERATURAS.quente) voluntario.quentes++;
+  });
+  return Object.keys(porNome)
+    .map(function (nome) {
+      return porNome[nome];
+    })
+    .sort(function (a, b) {
+      return b.leads - a.leads || b.quentes - a.quentes || a.nome.localeCompare(b.nome, 'pt-BR');
+    })
+    .map(function (voluntario) {
+      return { nome: voluntario.nome, leads: voluntario.leads };
+    });
 }
 
 /* ---------- Menu da planilha ---------- */
@@ -212,12 +262,31 @@ function lerBackup_(texto) {
 
 function recriarDashboard() {
   var ss = SpreadsheetApp.getActiveSpreadsheet();
-  garantirCabecalho_(obterOuCriarAba_(ss, ABA_LEADS));
+  var leads = obterOuCriarAba_(ss, ABA_LEADS);
+  garantirCabecalho_(leads);
+  var corrigidas = corrigirReunioes_(leads);
   var problemas = montarPaineis_(ss);
-  SpreadsheetApp.getUi().alert(problemas.length
+  SpreadsheetApp.getUi().alert((problemas.length
     ? 'Dashboard e Ranking recriados, mas ' + problemas.length + ' fórmula(s) com problema: ' + problemas.join(', ') +
       '. Envie esta mensagem para quem mantém o app.'
-    : 'Dashboard e Ranking recriados. Todas as fórmulas calcularam.');
+    : 'Dashboard e Ranking recriados. Todas as fórmulas calcularam.') +
+    (corrigidas ? ' Acento corrigido em ' + corrigidas + ' linha(s) de "' + PROXIMOS_PASSOS.reuniao + '".' : ''));
+}
+
+// Uma versão anterior deste arquivo foi colada no editor com a acentuação quebrada e gravou "Reunião"
+// com o acento errado. Escrito com \u para continuar igual mesmo que o arquivo seja colado errado de novo.
+var REUNIAO_ACENTO_QUEBRADO = 'Reuni\u221A\u00A3o';
+
+// Troca o texto quebrado por "Reunião" na coluna proximo_passo, para as fórmulas contarem todas as reuniões.
+// Retorna quantas células mudaram.
+function corrigirReunioes_(aba) {
+  var total = aba.getLastRow() - 1;
+  if (total < 1 || REUNIAO_ACENTO_QUEBRADO === PROXIMOS_PASSOS.reuniao) return 0;
+  return aba.getRange(2, colunaDe_('proximo_passo'), total, 1)
+    .createTextFinder(REUNIAO_ACENTO_QUEBRADO)
+    .matchCase(true)
+    .matchEntireCell(true)
+    .replaceAllWith(PROXIMOS_PASSOS.reuniao);
 }
 
 /* ---------- Dashboard e Ranking ---------- */

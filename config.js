@@ -1,5 +1,6 @@
 // Tudo que muda de um evento para outro fica aqui.
-// Este arquivo é público (GitHub Pages): a URL e o token só permitem inserir linhas na planilha.
+// Este arquivo é público (GitHub Pages): a URL e o token só permitem inserir linhas na planilha
+// e ler o leaderboard (nomes dos voluntários e quantos leads cada um tem, nada dos leads).
 // "self" funciona na página e no sw.js, que lê as imagens dos QRs daqui para guardar offline.
 self.APP_CONFIG = {
   evento: 'AI.Brasil Experience 2026',
@@ -30,5 +31,6 @@ self.APP_CONFIG = {
   },
   exigirAutorizacao: true,
   intervaloSyncSegundos: 30,
+  intervaloLeaderboardSegundos: 30, // com o leaderboard aberto, busca a planilha de novo a cada 30 s
   loteMaximo: 20
 };

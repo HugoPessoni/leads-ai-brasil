@@ -585,6 +585,147 @@ main {
   margin: auto auto 0;
 }
 
+/* ---------- Leaderboard ---------- */
+
+.leaderboard {
+  position: fixed;
+  inset: 0;
+  z-index: 25;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 0 16px calc(24px + env(safe-area-inset-bottom));
+  background: var(--preto);
+}
+
+.leaderboard > * {
+  max-width: 520px;
+  margin-right: auto;
+  margin-left: auto;
+}
+
+/* Título e botão de fechar ficam visíveis ao rolar a lista. */
+.leaderboard-topo {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: calc(16px + env(safe-area-inset-top)) 0 14px;
+  background: var(--preto);
+  border-bottom: 1px solid var(--linha);
+}
+
+.leaderboard-topo h1 {
+  flex: 1;
+}
+
+.botao-fechar {
+  flex-shrink: 0;
+  width: 48px;
+  height: 48px;
+  border: 1.5px solid var(--linha);
+  border-radius: 50%;
+  background: transparent;
+  font-size: 20px;
+}
+
+.botao-fechar:active {
+  background: var(--linha);
+}
+
+.leaderboard-status {
+  margin-top: 12px;
+  margin-bottom: 0;
+  font-size: 13px;
+  color: var(--cinza);
+}
+
+.leaderboard-nota {
+  margin-top: 12px;
+  margin-bottom: 0;
+  padding: 12px 14px;
+  border: 1.5px solid var(--lima);
+  border-radius: var(--raio);
+  background: var(--campo);
+  font-size: 14px;
+}
+
+.leaderboard-lista {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 14px;
+  margin-bottom: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* Posição | nome | leads; a barra (fração do líder) fica embaixo do nome. */
+.ranking-item {
+  display: grid;
+  grid-template-columns: 40px 1fr auto;
+  align-items: center;
+  gap: 6px 10px;
+  padding: 12px 14px;
+  border: 1.5px solid var(--linha);
+  border-radius: var(--raio);
+  background: var(--campo);
+}
+
+.ranking-item.voce {
+  border-color: var(--lima);
+}
+
+.ranking-posicao {
+  font-family: var(--fonte-titulo);
+  font-size: 22px;
+  font-weight: 700;
+  text-align: center;
+}
+
+.ranking-nome {
+  min-width: 0;
+  font-weight: 700;
+  line-height: 1.25;
+  overflow-wrap: anywhere;
+}
+
+.ranking-voce {
+  display: inline-block;
+  margin-left: 8px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: var(--lima);
+  color: var(--preto);
+  font-size: 11px;
+  text-transform: uppercase;
+  vertical-align: 2px;
+}
+
+.ranking-leads {
+  font-family: var(--fonte-titulo);
+  font-size: 28px;
+  font-weight: 700;
+  line-height: 1;
+  color: var(--verde);
+}
+
+.ranking-barra {
+  grid-column: 2 / 4;
+  height: 6px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: var(--linha);
+}
+
+.ranking-barra span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--verde);
+}
+
 /* ---------- Aviso temporário ---------- */
 
 /* Fica no topo e deixa o toque passar, para não esconder nem bloquear os botões de baixo. */

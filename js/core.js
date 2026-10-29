@@ -169,6 +169,46 @@
     return gravados.concat(ignorados);
   }
 
+  var MEDALHAS = ['🥇', '🥈', '🥉'];
+
+  /**
+   * Leaderboard a partir da resposta da planilha ([{ nome, leads }], já na ordem da aba Ranking).
+   * Cada linha traz a posição (medalha nos três primeiros), a fração do líder para a barra (0 a 1)
+   * e se é o voluntário deste celular, comparando o nome sem diferença de maiúsculas e espaços.
+   */
+  function montarRanking(voluntarios, voluntarioAtual) {
+    var lista = (Array.isArray(voluntarios) ? voluntarios : []).filter(function (item) {
+      return item && String(item.nome || '').trim();
+    });
+    var lider = lista.reduce(function (maior, item) {
+      return Math.max(maior, Number(item.leads) || 0);
+    }, 0);
+    var atual = chaveDoNome(voluntarioAtual);
+    var linhas = lista.map(function (item, indice) {
+      var leads = Number(item.leads) || 0;
+      return {
+        posicao: MEDALHAS[indice] || indice + 1 + 'º',
+        nome: String(item.nome).trim(),
+        leads: leads,
+        barra: lider ? leads / lider : 0,
+        voce: atual !== '' && chaveDoNome(item.nome) === atual
+      };
+    });
+    return {
+      linhas: linhas,
+      total: linhas.reduce(function (soma, linha) {
+        return soma + linha.leads;
+      }, 0),
+      voceAparece: linhas.some(function (linha) {
+        return linha.voce;
+      })
+    };
+  }
+
+  function chaveDoNome(nome) {
+    return String(nome || '').trim().replace(/\s+/g, ' ').toLocaleLowerCase('pt-BR');
+  }
+
   var PREFIXO_BACKUP = 'LEADS1:';
 
   // Texto do backup: "LEADS1:" + JSON dos leads em Base64 (UTF-8, para manter acentos e emojis).
@@ -222,6 +262,7 @@
     mesmoDia: mesmoDia,
     formatarHorario: formatarHorario,
     idsConfirmados: idsConfirmados,
+    montarRanking: montarRanking,
     codificarBackup: codificarBackup,
     decodificarBackup: decodificarBackup,
     nomeDoBackup: nomeDoBackup

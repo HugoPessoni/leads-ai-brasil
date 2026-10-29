@@ -26,6 +26,7 @@
   </header>
 
   <nav id="menu" class="menu" hidden>
+    <button type="button" data-acao="leaderboard">Leaderboard</button>
     <button type="button" data-acao="enviar">Enviar pendentes</button>
     <button type="button" data-acao="backup">Exportar backup</button>
     <button type="button" data-acao="trocar">Trocar voluntário</button>
@@ -121,6 +122,17 @@
     <button id="leitor-cancelar" class="botao botao-secundario" type="button">Cancelar</button>
   </div>
 
+  <!-- Leaderboard: leads por voluntário, direto da planilha. Abre por cima de tudo, sem mexer no lead da tela. -->
+  <div id="leaderboard" class="leaderboard" role="dialog" aria-modal="true" aria-labelledby="leaderboard-titulo" hidden>
+    <div class="leaderboard-topo">
+      <h1 id="leaderboard-titulo"><span class="fino">Leaderboard</span> <span class="destaque">do evento</span></h1>
+      <button id="leaderboard-fechar" class="botao-fechar" type="button" aria-label="Fechar o leaderboard">✕</button>
+    </div>
+    <p id="leaderboard-status" class="leaderboard-status" role="status"></p>
+    <p id="leaderboard-nota" class="leaderboard-nota" hidden></p>
+    <ol id="leaderboard-lista" class="leaderboard-lista"></ol>
+  </div>
+
   <div id="aviso" class="aviso" role="status" hidden></div>
 
   <script src="config.js"></script>
@@ -129,6 +141,7 @@
   <script src="js/scanner.js"></script>
   <script src="js/storage.js"></script>
   <script src="js/sync.js"></script>
+  <script src="js/ranking.js"></script>
   <script src="js/app.js"></script>
 </body>
 </html>

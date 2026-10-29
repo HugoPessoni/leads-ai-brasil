@@ -2,7 +2,7 @@
 // Ao publicar qualquer mudança de código, aumente VERSAO: o celular baixa tudo de novo na próxima abertura.
 // Mudanças só no config.js não precisam disso (ele é importado abaixo e o navegador percebe sozinho).
 
-var VERSAO = '5';
+var VERSAO = '6';
 var CACHE = 'leads-' + VERSAO;
 
 importScripts('config.js');
@@ -17,6 +17,7 @@ var ARQUIVOS = [
   'js/scanner.js',
   'js/storage.js',
   'js/sync.js',
+  'js/ranking.js',
   'js/app.js',
   'vendor/html5-qrcode.min.js',
   'fonts/rajdhani-300.woff2',
